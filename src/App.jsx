@@ -19,7 +19,7 @@ export default function App() {
 
   const params = new URLSearchParams(window.location.search);
   const isAdminRoute = params.get('admin') === 'true';
-  const slug = params.get('p') || 'sara-beauty';
+  const slug = params.get('p');
 
   const loadProviderDetails = async (prov) => {
     setProvider(prov);
@@ -30,7 +30,7 @@ export default function App() {
   };
 
   const loadData = async () => {
-    if (isAdminRoute) {
+    if (isAdminRoute || !slug) {
       setLoading(false);
       return;
     }
@@ -94,6 +94,49 @@ export default function App() {
     );
   }
 
+  // الواجهة الرئيسية للمنصة عند الدخول بدون رابط صالون (?p=...)
+  if (!slug && view === 'booking') {
+    return (
+      <div style={{ padding: 16, maxWidth: 480, margin: '20px auto', fontFamily: 'sans-serif' }} dir="rtl">
+        <div style={{ background: '#fff', padding: 28, borderRadius: 18, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', textAlign: 'center' }}>
+          <div style={{ display: 'inline-block', background: '#eff6ff', color: '#2563eb', padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 'bold', marginBottom: 12 }}>
+            منصة الحجز وتأكيد المواعيد بالمغرب 🇲🇦
+          </div>
+          <h1 style={{ margin: '0 0 12px', fontSize: 28, color: '#0f172a' }}>منصة عربون</h1>
+          <p style={{ color: '#475569', fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
+            وداعاً للمواعيد الوهمية! أنشئ صفحة حجز احترافية لصالونك أو مشروعك في دقيقة واحدة، واستقبل حجوزات زبائنك مع وصل دفع العربون مباشرة.
+          </p>
+
+          <button
+            onClick={() => setView('register')}
+            style={{ width: '100%', background: '#2563eb', color: '#fff', border: 'none', padding: 15, borderRadius: 12, fontWeight: 'bold', fontSize: 16, cursor: 'pointer', marginBottom: 12 }}
+          >
+            + أنشئ صفحة حجز لمشروعك مجاناً
+          </button>
+
+          <button
+            onClick={() => {
+              setIsUnlocked(false);
+              setView('dashboard');
+            }}
+            style={{ width: '100%', background: '#f1f5f9', color: '#0f172a', border: '1px solid #cbd5e1', padding: 13, borderRadius: 12, fontWeight: 'bold', fontSize: 15, cursor: 'pointer' }}
+          >
+            دخول أصحاب المشاريع (لوحة التحكم)
+          </button>
+
+          <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid #e2e8f0', textAlign: 'right' }}>
+            <h4 style={{ margin: '0 0 12px', color: '#0f172a', fontSize: 15 }}>كيف تعمل منصة عربون؟</h4>
+            <div style={{ fontSize: 13, color: '#475569', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div>✅ <strong>1. سجّل مشروعك:</strong> أضف خدماتك، أوقات عملك، وحساباتك البنكية.</div>
+              <div>🔗 <strong>2. شارك رابطك:</strong> ضع رابطك الخاص في إنستغرام أو واتساب.</div>
+              <div>💸 <strong>3. استقبل العربون:</strong> الزبون يحجز ويرفع وصل التحويل لتأكيد موعده.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: 12 }}>
       {view === 'booking' ? (
@@ -102,8 +145,14 @@ export default function App() {
             <BookingPage provider={provider} services={services} onSuccess={() => loadProviderDetails(provider)} />
           ) : (
             <div style={{ textAlign: 'center', background: '#fff', padding: 24, borderRadius: 14, maxWidth: 420, margin: '40px auto' }}>
-              <h3>مرحباً بك في منصة عربون</h3>
-              <p style={{ color: '#64748b', fontSize: 14 }}>هذه الصفحة غير متوفرة أو بانتظار التفعيل.</p>
+              <h3>هذه الصفحة غير متوفرة</h3>
+              <p style={{ color: '#64748b', fontSize: 14 }}>قد يكون الرابط غير صحيح أو أن الحساب بانتظار التفعيل.</p>
+              <button
+                onClick={() => { window.location.href = '/'; }}
+                style={{ marginTop: 12, background: '#0f172a', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: 8, fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                الذهاب للصفحة الرئيسية
+              </button>
             </div>
           )}
 
@@ -135,7 +184,7 @@ export default function App() {
               }}
               style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: '#cbd5e1', fontWeight: 'bold', cursor: 'pointer' }}
             >
-              → العودة لصفحة الحجز
+              {slug ? '→ العودة لصفحة الحجز' : '→ العودة للرئيسية'}
             </button>
             {isUnlocked && (
               <button
