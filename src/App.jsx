@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import BookingPage from './BookingPage.jsx';
 import DashboardPage from './DashboardPage.jsx';
+import RegisterPage from './RegisterPage.jsx';
 
 export default function App() {
   const [view, setView] = useState('booking');
@@ -41,6 +42,15 @@ export default function App() {
   };
 
   if (loading) return <div style={{ textAlign: 'center', marginTop: 50 }}>جاري التحميل...</div>;
+
+  if (view === 'register') {
+    return (
+      <div style={{ padding: 12 }}>
+        <RegisterPage onCancel={() => setView('booking')} />
+      </div>
+    );
+  }
+
   if (!provider) return <div style={{ textAlign: 'center', marginTop: 50 }}>الصفحة غير متوفرة</div>;
 
   return (
@@ -48,12 +58,18 @@ export default function App() {
       {view === 'booking' ? (
         <>
           <BookingPage provider={provider} services={services} onSuccess={loadData} />
-          <div style={{ textAlign: 'center', marginTop: 20 }}>
+          <div style={{ textAlign: 'center', marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button
               onClick={() => setView('dashboard')}
               style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 13, textDecoration: 'underline', cursor: 'pointer' }}
             >
               دخول صاحب المشروع (لوحة التحكم)
+            </button>
+            <button
+              onClick={() => setView('register')}
+              style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: 13, fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              + هل لديك صالون أو مشروع؟ أنشئ صفحة حجزك مجاناً
             </button>
           </div>
         </>
