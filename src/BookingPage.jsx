@@ -10,7 +10,7 @@ export default function BookingPage({ provider, services, onSuccess }) {
     ? provider.payment_methods
     : (provider.rib ? [{ bank: provider.bank_name || 'CIH Bank', account: provider.rib }] : []);
 
-  const [serviceId, setServiceId] = useState(services && services.length > 0 ? services[0].id : '');
+  const [serviceId, setServiceId] = useState(services && services.length > 0 ? services.at(0).id : '');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [bookedTimes, setBookedTimes] = useState([]);
@@ -24,23 +24,20 @@ export default function BookingPage({ provider, services, onSuccess }) {
   const [bookedInfo, setBookedInfo] = useState(null);
 
   const selectedSrv = services.find((s) => String(s.id) === String(serviceId));
-
-  // تحديد الخطوة الحالية تلقائياً لشريط التقدم (1 -> 2 -> 3)
   const currentStep = (date && time) ? 3 : serviceId ? 2 : 1;
 
-  // تحميل خط Cairo العربي العصري
   useEffect(() => {
     const link = document.createElement('link');
     link.href = 'https://googleapis.com';
     link.rel = 'stylesheet';
     document.head.appendChild(link);
   }, []);
-
   useEffect(() => {
     if (!date || !provider.id) {
       setBookedTimes([]);
       return;
     }
+
     const fetchBookedSlots = async () => {
       setCheckingSlots(true);
       const { data, error } = await supabase
@@ -54,18 +51,25 @@ export default function BookingPage({ provider, services, onSuccess }) {
       if (!error && Array.isArray(data)) {
         const taken = data.map((item) => item.booking_time);
         setBookedTimes(taken);
-        if (taken.includes(time)) setTime('');
+        if (taken.includes(time)) {
+          setTime('');
+        }
       }
     };
+
     fetchBookedSlots();
   }, [date, provider.id]);
 
   const rawPhone = String(provider.phone || '').replace(/\D/g, '');
   let providerWaPhone = rawPhone;
-  if (providerWaPhone.startsWith('0')) providerWaPhone = '212' + providerWaPhone.slice(1);
-  else if (providerWaPhone && !providerWaPhone.startsWith('212')) providerWaPhone = '212' + providerWaPhone;
+  if (providerWaPhone.startsWith('0')) {
+    providerWaPhone = '212' + providerWaPhone.slice(1);
+  } else if (providerWaPhone && !providerWaPhone.startsWith('212')) {
+    providerWaPhone = '212' + providerWaPhone;
+  }
 
   const buildWhatsAppUrl = (text) => `https://wa.me{providerWaPhone}?text=${encodeURIComponent(text)}`;
+
   const inquiryWaText =
     `مرحبا ${provider.business_name}، أود الاستفسار بخصوص حجز موعد` +
     (selectedSrv ? ` لخدمة: ${selectedSrv.title}` : '') +
@@ -142,8 +146,20 @@ export default function BookingPage({ provider, services, onSuccess }) {
       setLoading(false);
     }
   };
-
   const pageFont = { fontFamily: "'Cairo', sans-serif", direction: 'rtl' };
+
+  const inputStyle = {
+    width: '100%',
+    padding: '11px 12px',
+    margin: '6px 0 14px',
+    borderRadius: 10,
+    border: '1px solid #cbd5e1',
+    background: '#fff',
+    color: '#0f172a',
+    boxSizing: 'border-box',
+    fontFamily: 'inherit',
+    fontSize: 14
+  };
 
   if (bookedInfo) {
     const confirmWaText =
@@ -180,16 +196,6 @@ export default function BookingPage({ provider, services, onSuccess }) {
       </div>
     );
   }
-    const inputStyle = {
-    width: '100%',
-    padding: '11px 12px',
-    margin: '6px 0 14px',
-    borderRadius: 10,
-    border: '1px solid #cbd5e1',
-    boxSizing: 'border-box',
-    fontFamily: 'inherit',
-    fontSize: 14
-  };
 
   return (
     <div style={{ ...pageFont, maxWidth: 460, margin: '12px auto', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.06)' }}>
@@ -262,11 +268,10 @@ export default function BookingPage({ provider, services, onSuccess }) {
               );
             })}
           </div>
-
           <label style={{ display: 'block', fontWeight: 700, fontSize: 14 }}>2. التاريخ</label>
           <input
             type="date"
-            min={new Date().toISOString().split('T')[0]}
+            min={new Date().toISOString().split('T').at(0)}
             style={inputStyle}
             value={date}
             onChange={(e) => setDate(e.target.value)}
@@ -344,7 +349,7 @@ export default function BookingPage({ provider, services, onSuccess }) {
           <input type="tel" style={inputStyle} value={phone} onChange={(e) => setPhone(e.target.value)} required />
 
           <label style={{ fontWeight: 700, fontSize: 14 }}>صورة وصل الدفع</label>
-          <input type="file" accept="image/*" style={inputStyle} onChange={(e) => setFile(e.target.files[0])} required />
+          <input type="file" accept="image/*" style={inputStyle} onChange={(e) => setFile(e.target.files.item(0))} required />
 
           <button type="submit" disabled={loading} style={{ width: '100%', background: '#2563eb', color: '#fff', border: 'none', padding: 14, borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
             {loading ? 'جاري الإرسال...' : 'تأكيد الحجز وإرسال الوصل'}
@@ -378,4 +383,3 @@ export default function BookingPage({ provider, services, onSuccess }) {
     </div>
   );
 }
-
