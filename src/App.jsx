@@ -9,19 +9,32 @@ export default function App() {
   const [services, setServices] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const slug = new URLSearchParams(window.location.search).get('p') || 'sara-beauty';
 
   const loadData = async () => {
-    const { data: prov } = await supabase.from('providers').select('*').eq('slug', slug).single();
-    if (prov && prov.is_active) {
-      setProvider(prov);
-      const { data: srvs } = await supabase.from('services').select('*').eq('provider_id', prov.id);
-      setServices(srvs || []);
-      const { data: bks } = await supabase.from('bookings').select('*').eq('provider_id', prov.id).order('created_at', { ascending: false });
-      setBookings(bks || []);
+    try {
+      const { data: prov, error } = await supabase
+        .from('providers')
+        .select('*')
+        .eq('slug', slug)
+        .single();
+
+      if (error) throw error;
+
+      if (prov && prov.is_active) {
+        setProvider(prov);
+        const { data: srvs } = await supabase.from('services').select('*').eq('provider_id', prov.id);
+        setServices(srvs || []);
+        const { data: bks } = await supabase.from('bookings').select('*').eq('provider_id', prov.id).order('created_at', { ascending: false });
+        setBookings(bks || []);
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'فشل الاتصال بقاعدة البيانات');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -29,6 +42,7 @@ export default function App() {
   }, []);
 
   if (loading) return <div style={{ textAlign: 'center', marginTop: 50 }}>جاري التحميل...</div>;
+  if (errorMsg) return <div style={{ textAlign: 'center', marginTop: 50, color: 'red', padding: 20 }}>خطأ: {errorMsg}</div>;
   if (!provider) return <div style={{ textAlign: 'center', marginTop: 50 }}>الصفحة غير متوفرة</div>;
 
   return (
