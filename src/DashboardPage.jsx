@@ -177,7 +177,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
           >
             مشاركة واتساب 💬
           </button>
-
+      </div>
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
