@@ -55,7 +55,7 @@ export default function AdminPage() {
   };
 
   const deleteProvider = async (id, name) => {
-    if (!window.confirm(`هل أنت متأكد من حذف حساب "${name || 'هذا المشترك'}" نهائياً؟`)) return;
+    if (!window.confirm('هل أنت متأكد من حذف حساب "' + (name || 'هذا المشترك') + '" نهائياً؟')) return;
     
     const { error } = await supabase
       .from('providers')
@@ -112,9 +112,9 @@ export default function AdminPage() {
     React.createElement(
       'div',
       { style: styles.statsBar },
-      React.createElement('div', { style: styles.statCard }, `الكل: ${providers.length}`),
-      React.createElement('div', { style: { ...styles.statCard, color: '#16a34a' } }, `مفعّل: ${providers.filter(p => p.is_active).length}`),
-      React.createElement('div', { style: { ...styles.statCard, color: '#dc2626' } }, `موقوف: ${providers.filter(p => !p.is_active).length}`)
+      React.createElement('div', { style: styles.statCard }, 'الكل: ' + providers.length),
+      React.createElement('div', { style: { ...styles.statCard, color: '#16a34a' } }, 'مفعّل: ' + providers.filter(p => p.is_active).length),
+      React.createElement('div', { style: { ...styles.statCard, color: '#dc2626' } }, 'موقوف: ' + providers.filter(p => !p.is_active).length)
     ),
     React.createElement('input', {
       type: 'text',
@@ -131,8 +131,14 @@ export default function AdminPage() {
           'div',
           { style: styles.list },
           filteredProviders.map((provider) => {
-            const phoneStr = String(provider.phone || '');
-            const cleanPhone = phoneStr.replace(/^0+/, '');
+            const phoneStr = String(provider.phone || '').replace(/\s+/g, '');
+            let waPhone = phoneStr;
+            if (waPhone.startsWith('0')) {
+              waPhone = '212' + waPhone.slice(1);
+            } else if (waPhone && !waPhone.startsWith('212')) {
+              waPhone = '212' + waPhone;
+            }
+            const waUrl = 'https://whatsapp.com' + waPhone;
             const projectTitle = provider.business_name || provider.salon_name || 'بدون اسم مشروع';
             const ownerName = provider.full_name || provider.owner_name || '-';
 
@@ -161,10 +167,10 @@ export default function AdminPage() {
                   provider.is_active ? 'حساب نشط' : 'موقوف'
                 )
               ),
-              React.createElement('p', { style: styles.infoText }, `👤 الاسم: ${ownerName}`),
-              React.createElement('p', { style: styles.infoText }, `📞 الهاتف: ${phoneStr || '-'}`),
-              React.createElement('p', { style: styles.infoText }, `🔗 الرابط: /?p=${provider.slug || ''}`),
-              React.createElement('p', { style: styles.infoText }, `🏦 RIB: ${provider.rib || '-'}`),
+              React.createElement('p', { style: styles.infoText }, '👤 الاسم: ' + ownerName),
+              React.createElement('p', { style: styles.infoText }, '📞 الهاتف: ' + (phoneStr || '-')),
+              React.createElement('p', { style: styles.infoText }, '🔗 الرابط: /?p=' + (provider.slug || '')),
+              React.createElement('p', { style: styles.infoText }, '🏦 RIB: ' + (provider.rib || '-')),
               React.createElement(
                 'div',
                 { style: styles.actions },
@@ -179,10 +185,10 @@ export default function AdminPage() {
                   },
                   provider.is_active ? 'إيقاف الحساب ⛔' : 'تفعيل الحساب ✅'
                 ),
-                cleanPhone && React.createElement(
+                waPhone && React.createElement(
                   'a',
                   {
-                    href: `https://wa.me{cleanPhone}`,
+                    href: waUrl,
                     target: '_blank',
                     rel: 'noreferrer',
                     style: styles.whatsappBtn
