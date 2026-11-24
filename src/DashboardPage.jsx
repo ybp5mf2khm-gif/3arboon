@@ -33,8 +33,14 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
   const [savingSettings, setSavingSettings] = useState(false);
 
   const bookingLink = window.location.origin + '/?p=' + provider.slug;
-  const shareText = encodeURIComponent('مرحباً! يمكنك حجز موعدك في *' + provider.business_name + '* مباشرة عبر الرابط التالي:\n' + bookingLink);
-    const handleShareWhatsApp = async () => {
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(bookingLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleShareWhatsApp = async () => {
     const textMsg = 'مرحباً! يمكنك حجز موعدك في *' + provider.business_name + '* مباشرة عبر الرابط التالي:\n' + bookingLink;
     if (navigator.share) {
       try {
@@ -49,11 +55,31 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     window.location.href = 'whatsapp://send?text=' + encodeURIComponent(textMsg);
   };
 
+  // تصفية المواعيد المؤكدة التي تبقى لها ساعتان أو أقل ولم يتم تذكيرها
+  const upcomingReminders = bookings.filter((b) => {
+    if (b.status !== 'confirmed' || b.reminder_sent) return false;
+    if (!b.booking_date || !b.booking_time) return false;
+    const apptTime = new Date(b.booking_date + 'T' + b.booking_time + ':00');
+    if (isNaN(apptTime.getTime())) return false;
+    const now = new Date();
+    const diffHours = (apptTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+    return diffHours <= 2 && diffHours >= -1;
+  });
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(bookingLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+  // إرسال رسالة التذكير وتحديث الحالة في قاعدة البيانات
+  const handleSendReminder = async (b) => {
+    await supabase.from('bookings').update({ reminder_sent: true }).eq('id', b.id);
+    if (onRefresh) onRefresh();
+
+    let ph = String(b.client_phone || '').replace(/\s+/g, '');
+    if (ph.startsWith('0')) {
+      ph = '212' + ph.slice(1);
+    } else if (ph && !ph.startsWith('212')) {
+      ph = '212' + ph;
+    }
+
+    const msg = 'مرحباً ' + b.client_name + '، نذكرك بموعدك اليوم في *' + provider.business_name + '* على الساعة *' + b.booking_time + '*. نتشرف بحضورك!';
+    window.location.href = 'https://whatsapp.com' + ph + '&text=' + encodeURIComponent(msg);
   };
 
   const updateStatus = async (b, newStatus) => {
@@ -122,7 +148,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     if (paymentMethods.length === 0) return alert('يجب إضافة طريقة دفع واحدة على الأقل');
     setSavingSettings(true);
 
-    const firstPay = paymentMethods[0];
+    const firstPay = paymentMethods;
     const { error } = await supabase
       .from('providers')
       .update({
@@ -156,6 +182,29 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     <div style={{ maxWidth: 460, margin: 'auto', background: '#fff', padding: 20, borderRadius: 14 }}>
       <h3 style={{ textAlign: 'center', marginTop: 0, marginBottom: 12 }}>{provider.business_name}</h3>
 
+      {upcomingReminders.length > 0 && (
+        <div style={{ background: '#fff7ed', border: '1px solid #fdba74', borderRadius: 10, padding: 12, marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 'bold', color: '#c2410c', marginBottom: 8 }}>
+            ⏰ مواعيد تقترب (متبقي ساعتان أو أقل):
+          </div>
+          {upcomingReminders.map((rem) => (
+            <div key={rem.id} style={{ background: '#fff', border: '1px solid #fed7aa', borderRadius: 8, padding: 10, marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontSize: 13 }}>
+                <strong>{rem.client_name}</strong>
+                <div style={{ color: '#64748b', fontSize: 12 }}>الساعة: {rem.booking_time}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleSendReminder(rem)}
+                style={{ background: '#ea580c', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: 8, fontWeight: 'bold', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                إرسال تذكير 💬
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, marginBottom: 16 }}>
         <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6, fontWeight: 'bold' }}>
           🔗 رابط الحجز الخاص بزبائنك:
@@ -165,19 +214,20 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button
+            type="button"
             onClick={handleCopyLink}
             style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none', background: copied ? '#16a34a' : '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: 13, cursor: 'pointer' }}
           >
             {copied ? 'تم النسخ ✅' : 'نسخ الرابط 📋'}
           </button>
-                    <button
+          <button
             type="button"
             onClick={handleShareWhatsApp}
             style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none', background: '#25D366', color: '#fff', fontWeight: 'bold', fontSize: 13, cursor: 'pointer' }}
           >
             مشاركة واتساب 💬
           </button>
-      </div>
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
@@ -225,12 +275,19 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                 <button onClick={() => updateStatus(b, 'rejected')} style={{ background: '#dc2626', color: '#fff', border: 'none', padding: 8, borderRadius: 6 }}>
                   رفض
                 </button>
+                {b.status === 'confirmed' && (
+                  <button
+                    onClick={() => handleSendReminder(b)}
+                    style={{ background: b.reminder_sent ? '#e2e8f0' : '#f97316', color: b.reminder_sent ? '#475569' : '#fff', border: 'none', padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 'bold' }}
+                  >
+                    {b.reminder_sent ? 'ذُكّر ✅' : 'تذكير ⏰'}
+                  </button>
+                )}
               </div>
             </div>
           ))}
         </div>
       )}
-
       {tab === 'services' && (
         <div>
           <form onSubmit={handleAddService} style={{ background: '#f8fafc', padding: 12, borderRadius: 10, marginBottom: 16, border: '1px solid #e2e8f0' }}>
@@ -261,6 +318,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
           ))}
         </div>
       )}
+
       {tab === 'settings' && (
         <form onSubmit={handleSaveSettings}>
           <div style={{ background: '#f8fafc', padding: 12, borderRadius: 10, marginBottom: 14, border: '1px solid #e2e8f0' }}>
