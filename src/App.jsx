@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient';
 import BookingPage from './BookingPage.jsx';
 import DashboardPage from './DashboardPage.jsx';
 import RegisterPage from './RegisterPage.jsx';
+import AdminPage from './AdminPage.js';
 
 export default function App() {
   const [view, setView] = useState('booking');
@@ -13,9 +14,15 @@ export default function App() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState('');
 
-  const slug = new URLSearchParams(window.location.search).get('p') || 'sara-beauty';
+  const params = new URLSearchParams(window.location.search);
+  const isAdminRoute = params.get('admin') === 'true';
+  const slug = params.get('p') || 'sara-beauty';
 
   const loadData = async () => {
+    if (isAdminRoute) {
+      setLoading(false);
+      return;
+    }
     const { data: prov } = await supabase.from('providers').select('*').eq('slug', slug).single();
     if (prov && prov.is_active) {
       setProvider(prov);
@@ -30,6 +37,11 @@ export default function App() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // فتح لوحة الإدارة الرئيسية عند الدخول عبر ?admin=true
+  if (isAdminRoute) {
+    return <AdminPage />;
+  }
 
   const handleUnlock = (e) => {
     e.preventDefault();
