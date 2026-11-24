@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 
 export default function BookingPage({ provider, services, onSuccess }) {
   const defaultHours = (Array.isArray(provider.working_hours) && provider.working_hours.length > 0)
     ? provider.working_hours
-    : ['10:00', '12:00', '15:00', '17:00'];
+    : ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'];
 
   const paymentList = (Array.isArray(provider.payment_methods) && provider.payment_methods.length > 0)
     ? provider.payment_methods
@@ -12,7 +12,10 @@ export default function BookingPage({ provider, services, onSuccess }) {
 
   const [serviceId, setServiceId] = useState(services && services.length > 0 ? services[0].id : '');
   const [date, setDate] = useState('');
-  const [time, setTime] = useState(defaultHours[0]);
+  const [time, setTime] = useState('');
+  const [bookedTimes, setBookedTimes] = useState([]);
+  const [checkingSlots, setCheckingSlots] = useState(false);
+
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [file, setFile] = useState(null);
@@ -21,6 +24,34 @@ export default function BookingPage({ provider, services, onSuccess }) {
   const [bookedInfo, setBookedInfo] = useState(null);
 
   const selectedSrv = services.find((s) => String(s.id) === String(serviceId));
+
+  useEffect(() => {
+    if (!date || !provider.id) {
+      setBookedTimes([]);
+      return;
+    }
+
+    const fetchBookedSlots = async () => {
+      setCheckingSlots(true);
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('booking_time, status')
+        .eq('provider_id', provider.id)
+        .eq('booking_date', date)
+        .neq('status', 'rejected');
+
+      setCheckingSlots(false);
+      if (!error && Array.isArray(data)) {
+        const taken = data.map((item) => item.booking_time);
+        setBookedTimes(taken);
+        if (taken.includes(time)) {
+          setTime('');
+        }
+      }
+    };
+
+    fetchBookedSlots();
+  }, [date, provider.id]);
 
   const rawPhone = String(provider.phone || '').replace(/\D/g, '');
   let providerWaPhone = rawPhone;
@@ -31,13 +62,14 @@ export default function BookingPage({ provider, services, onSuccess }) {
   }
 
   const buildWhatsAppUrl = (text) => {
-    return 'https://wa.me/' + providerWaPhone + '?text=' + encodeURIComponent(text);
+    return 'https://wa.me' + providerWaPhone + '?text=' + encodeURIComponent(text);
   };
 
   const inquiryWaText =
     'مرحبا ' + provider.business_name + '، أود الاستفسار بخصوص حجز موعد' +
     (selectedSrv ? ' لخدمة: ' + selectedSrv.title : '') +
-    (date ? ' يوم ' + date + ' الساعة ' + time : '');
+    (date ? ' يوم ' + date : '') +
+    (time ? ' الساعة ' + time : '');
 
   const copyAccount = (acc) => {
     navigator.clipboard.writeText(acc);
@@ -46,11 +78,30 @@ export default function BookingPage({ provider, services, onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!date) return alert('اختر تاريخ الموعد');
+    if (!time) return alert('اختر ساعة الموعد المتاحة');
     if (!file) return alert('اختر صورة الوصل');
+
     setLoading(true);
-    setMsg('جاري الإرسال...');
+    setMsg('جاري التحقق من الموعد وإرسال الطلب...');
 
     try {
+      const { data: existing } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('provider_id', provider.id)
+        .eq('booking_date', date)
+        .eq('booking_time', time)
+        .neq('status', 'rejected');
+
+      if (existing && existing.length > 0) {
+        setBookedTimes((prev) => [...prev, time]);
+        setTime('');
+        setLoading(false);
+        setMsg('');
+        return alert('عذراً، هذا التوقيت تم حجزه للتو! يرجى اختيار ساعة أخرى متاحة.');
+      }
+
       const ext = file.name.split('.').pop();
       const fileName = Date.now() + '.' + ext;
       const { error: upErr } = await supabase.storage.from('receipts').upload(fileName, file);
@@ -77,9 +128,11 @@ export default function BookingPage({ provider, services, onSuccess }) {
         time: time
       });
 
-      setMsg('تم إرسال طلبك بنجاح! ✅');
+      setBookedTimes((prev) => [...prev, time]);
+      setMsg('');
       setName('');
       setPhone('');
+      setTime('');
       setFile(null);
       if (onSuccess) onSuccess();
     } catch (err) {
@@ -166,14 +219,52 @@ export default function BookingPage({ provider, services, onSuccess }) {
         </select>
 
         <label>التاريخ</label>
-        <input type="date" style={input} value={date} onChange={(e) => setDate(e.target.value)} required />
+        <input
+          type="date"
+          min={new Date().toISOString().split('T')[0]}
+          style={input}
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          required
+        />
 
-        <label>الساعة</label>
-        <select style={input} value={time} onChange={(e) => setTime(e.target.value)}>
-          {defaultHours.map((hr) => (
-            <option key={hr} value={hr}>{hr}</option>
-          ))}
-        </select>
+        <label style={{ display: 'block', marginBottom: 6 }}>
+          اختر الساعة المتاحة {checkingSlots && <small style={{ color: '#2563eb' }}>(جاري فحص المواعيد...)</small>}
+        </label>
+
+        {!date ? (
+          <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: 8, padding: 12, textAlign: 'center', fontSize: 13, color: '#64748b', marginBottom: 12 }}>
+            يرجى اختيار التاريخ أولاً لعرض الساعات المتاحة
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14, direction: 'ltr' }}>
+            {defaultHours.map((hr) => {
+              const isBooked = bookedTimes.includes(hr);
+              const isSelected = time === hr;
+              return (
+                <button
+                  key={hr}
+                  type="button"
+                  disabled={isBooked}
+                  onClick={() => setTime(hr)}
+                  style={{
+                    padding: '10px 4px',
+                    borderRadius: 8,
+                    border: isSelected ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                    background: isBooked ? '#f1f5f9' : isSelected ? '#2563eb' : '#fff',
+                    color: isBooked ? '#94a3b8' : isSelected ? '#fff' : '#0f172a',
+                    fontWeight: 'bold',
+                    fontSize: 13,
+                    cursor: isBooked ? 'not-allowed' : 'pointer',
+                    textDecoration: isBooked ? 'line-through' : 'none'
+                  }}
+                >
+                  {hr} {isBooked ? '🔒' : ''}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {selectedSrv && (
           <div style={{ background: '#f0fdf4', padding: 12, borderRadius: 10, marginBottom: 12, border: '1px dashed #16a34a' }}>
