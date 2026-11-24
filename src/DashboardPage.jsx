@@ -68,7 +68,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     }
     window.location.assign('https://whatsapp.com' + encodeURIComponent(textMsg));
   };
-
   const upcomingReminders = bookings.filter((b) => {
     if (b.status !== 'confirmed' || b.reminder_sent) return false;
     if (!b.booking_date || !b.booking_time) return false;
@@ -123,6 +122,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
       alert('تم رفض الحجز بنجاح');
     }
   };
+
   const handleAddService = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -169,13 +169,12 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     if (workingHours.length <= 1) return alert('يجب ترك ساعة عمل واحدة على الأقل');
     setWorkingHours(workingHours.filter((h) => h !== hr));
   };
-
   const handleSaveSettings = async (e) => {
     e.preventDefault();
     if (paymentMethods.length === 0) return alert('يجب إضافة طريقة دفع واحدة على الأقل');
     setSavingSettings(true);
 
-    const firstPay = paymentMethods;
+    const firstPay = paymentMethods[0];
     const { error } = await supabase
       .from('providers')
       .update({
@@ -279,6 +278,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
           الإعدادات ⚙️
         </button>
       </div>
+
       {tab === 'bookings' && (
         <div>
           {bookings.length === 0 && <p style={{ textAlign: 'center', color: '#64748b' }}>لا توجد حجوزات بعد.</p>}
@@ -345,7 +345,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
           ))}
         </div>
       )}
-
       {tab === 'services' && (
         <div>
           <form onSubmit={handleAddService} style={{ background: '#f8fafc', padding: 12, borderRadius: 10, marginBottom: 16, border: '1px solid #e2e8f0' }}>
@@ -446,11 +445,12 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             <label style={{ fontSize: 13 }}>الرمز السري (PIN)</label>
             <input type="text" maxLength="6" style={input} value={pinCode} onChange={(e) => setPinCode(e.target.value)} required />
           </div>
-<button type="submit" disabled={savingSettings} style={{ width: '100%', background: '#16a34a', color: '#fff', border: 'none', padding: 13, borderRadius: 10, fontWeight: 'bold', fontSize: 15 }}>
-{savingSettings ? 'جاري الحفظ...' : 'حفظ جميع الإعدادات ✅'}
 
-
-)}
-
-);
+          <button type="submit" disabled={savingSettings} style={{ width: '100%', background: '#16a34a', color: '#fff', border: 'none', padding: 13, borderRadius: 10, fontWeight: 'bold', fontSize: 15 }}>
+            {savingSettings ? 'جاري الحفظ...' : 'حفظ جميع الإعدادات ✅'}
+          </button>
+        </form>
+      )}
+    </div>
+  );
 }
