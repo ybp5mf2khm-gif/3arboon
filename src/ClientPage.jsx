@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 
 export default function ClientPage({ onBack }) {
   const [mode, setMode] = useState('login');
-  const [activeTab, setActiveTab] = useState('offers'); // 'offers' أو 'bookings'
+  const [activeTab, setActiveTab] = useState('offers');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [pinCode, setPinCode] = useState('');
@@ -11,6 +11,14 @@ export default function ClientPage({ onBack }) {
   const [myBookings, setMyBookings] = useState([]);
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // تحميل خط Cairo العربي العصري
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://googleapis.com';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+  }, []);
 
   const loadClientData = async (clientPhone) => {
     const cleanPhone = String(clientPhone || '').replace(/\s+/g, '');
@@ -88,184 +96,200 @@ export default function ClientPage({ onBack }) {
       setLoading(false);
     }
   };
-    const input = {
+  const pageFont = { fontFamily: "'Cairo', sans-serif", direction: 'rtl' };
+
+  const inputStyle = {
     width: '100%',
-    padding: 12,
+    padding: '11px 12px',
     margin: '6px 0 14px',
-    borderRadius: 8,
+    borderRadius: 10,
     border: '1px solid #cbd5e1',
+    background: '#fff',
+    color: '#0f172a',
     boxSizing: 'border-box',
-    fontSize: 15
+    fontFamily: 'inherit',
+    fontSize: 14
   };
 
   if (client) {
     return (
-      <div style={{ maxWidth: 460, margin: '20px auto', background: '#fff', padding: 20, borderRadius: 14, fontFamily: 'sans-serif' }} dir="rtl">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ ...pageFont, maxWidth: 460, margin: '12px auto', background: '#fff', borderRadius: 22, overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.06)' }}>
+        {/* ترويسة حساب الزبون */}
+        <div style={{ background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)', color: '#fff', padding: '22px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h3 style={{ margin: 0 }}>مرحباً، {client.full_name} 👋</h3>
-            <small style={{ color: '#64748b' }}>رقم الهاتف: {client.phone}</small>
+            <span style={{ background: 'rgba(255,255,255,0.18)', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
+              فضاء الزبائن
+            </span>
+            <h3 style={{ margin: '6px 0 2px', fontSize: 19, fontWeight: 800 }}>مرحباً، {client.full_name} 👋</h3>
+            <small style={{ color: '#dbeafe', fontSize: 12 }}>رقم الهاتف: {client.phone}</small>
           </div>
           <button
             onClick={() => { setClient(null); setPinCode(''); }}
-            style={{ background: '#fee2e2', color: '#dc2626', border: 'none', padding: '6px 12px', borderRadius: 8, fontWeight: 'bold', cursor: 'pointer' }}
+            style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.35)', padding: '7px 14px', borderRadius: 10, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
           >
             خروج
           </button>
         </div>
 
-        {/* أزرار التبديل بين العروض وسجل الحجوزات */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <div style={{ padding: 20 }}>
+          {/* أزرار التبديل بين العروض وسجل الحجوزات */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 18, background: '#f1f5f9', padding: 5, borderRadius: 14 }}>
+            <button
+              onClick={() => setActiveTab('offers')}
+              style={{ flex: 1, padding: '10px 8px', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 13, background: activeTab === 'offers' ? '#2563eb' : 'transparent', color: activeTab === 'offers' ? '#fff' : '#475569', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              🏪 العروض المتاحة ({offers.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('bookings')}
+              style={{ flex: 1, padding: '10px 8px', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 13, background: activeTab === 'bookings' ? '#2563eb' : 'transparent', color: activeTab === 'bookings' ? '#fff' : '#475569', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              📅 حجوزاتي ({myBookings.length})
+            </button>
+          </div>
+
+          {activeTab === 'offers' ? (
+            <div>
+              {offers.length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#64748b', fontSize: 14, padding: 28, background: '#f8fafc', borderRadius: 14 }}>
+                  لا توجد مشاريع أو عروض مفعّلة حالياً.
+                </div>
+              ) : (
+                offers.map((prov) => (
+                  <div key={prov.id} style={{ border: '1px solid #e2e8f0', borderRadius: 16, padding: 15, marginBottom: 14, background: '#f8fafc' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <strong style={{ fontSize: 16, fontWeight: 800, color: '#0f172a' }}>{prov.business_name}</strong>
+                      <button
+                        onClick={() => { window.location.href = '/?p=' + prov.slug; }}
+                        style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+                      >
+                        احجز الآن ←
+                      </button>
+                    </div>
+
+                    {prov.services && prov.services.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                        {prov.services.map((srv) => (
+                          <div key={srv.id} style={{ background: '#fff', padding: '10px 12px', borderRadius: 10, border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
+                            <span style={{ fontWeight: 700, color: '#1e293b' }}>✨ {srv.title}</span>
+                            <span style={{ color: '#16a34a', fontWeight: 700, fontSize: 12 }}>
+                              {srv.total_price} درهم (عربون: {srv.deposit_amount} درهم)
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <small style={{ color: '#64748b' }}>لم تُضف خدمات بعد.</small>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          ) : (
+            <div>
+              {myBookings.length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#64748b', fontSize: 14, padding: 28, background: '#f8fafc', borderRadius: 14 }}>
+                  لا توجد لديك حجوزات مسجلة بهذا الرقم بعد.
+                </div>
+              ) : (
+                myBookings.map((b) => (
+                  <div key={b.id} style={{ border: '1px solid #e2e8f0', borderRadius: 14, padding: 14, marginBottom: 12, background: '#f8fafc' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <strong style={{ fontSize: 15, fontWeight: 800, color: '#0f172a' }}>{b.providers ? b.providers.business_name : 'مشروع'}</strong>
+                      <span style={{
+                        padding: '4px 10px',
+                        borderRadius: 8,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        background: b.status === 'confirmed' ? '#dcfce7' : b.status === 'rejected' ? '#fee2e2' : '#fef9c3',
+                        color: b.status === 'confirmed' ? '#166534' : b.status === 'rejected' ? '#991b1b' : '#854d0e'
+                      }}>
+                        {b.status === 'confirmed' ? 'مؤكد ✅' : b.status === 'rejected' ? 'مرفوض ❌' : 'قيد المراجعة ⏳'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 13, color: '#475569', marginTop: 8 }}>
+                      <strong>الخدمة:</strong> {b.services ? b.services.title : '-'} | <strong>العربون:</strong> {b.services ? b.services.deposit_amount : '-'} درهم
+                    </div>
+                    <div style={{ fontSize: 13, color: '#2563eb', fontWeight: 700, marginTop: 4 }}>
+                      📅 {b.booking_date} • ⏰ {b.booking_time}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
           <button
-            onClick={() => setActiveTab('offers')}
-            style={{ flex: 1, padding: 10, borderRadius: 8, border: 'none', fontWeight: 'bold', fontSize: 13, background: activeTab === 'offers' ? '#2563eb' : '#f1f5f9', color: activeTab === 'offers' ? '#fff' : '#334155', cursor: 'pointer' }}
+            onClick={onBack}
+            style={{ width: '100%', marginTop: 14, background: '#f1f5f9', color: '#334155', border: 'none', padding: 13, borderRadius: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
           >
-            🏪 العروض المتاحة ({offers.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('bookings')}
-            style={{ flex: 1, padding: 10, borderRadius: 8, border: 'none', fontWeight: 'bold', fontSize: 13, background: activeTab === 'bookings' ? '#2563eb' : '#f1f5f9', color: activeTab === 'bookings' ? '#fff' : '#334155', cursor: 'pointer' }}
-          >
-            📅 حجوزاتي ({myBookings.length})
+            → العودة للصفحة الرئيسية
           </button>
         </div>
-
-        {activeTab === 'offers' ? (
-          <div>
-            {offers.length === 0 ? (
-              <p style={{ textAlign: 'center', color: '#64748b', fontSize: 14, padding: 20 }}>
-                لا توجد مشاريع أو عروض مفعّلة حالياً.
-              </p>
-            ) : (
-              offers.map((prov) => (
-                <div key={prov.id} style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: 14, marginBottom: 12, background: '#f8fafc' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <strong style={{ fontSize: 16, color: '#0f172a' }}>{prov.business_name}</strong>
-                    <button
-                      onClick={() => { window.location.href = '/?p=' + prov.slug; }}
-                      style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '7px 14px', borderRadius: 8, fontWeight: 'bold', fontSize: 13, cursor: 'pointer' }}
-                    >
-                      احجز الآن ←
-                    </button>
-                  </div>
-
-                  {prov.services && prov.services.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
-                      {prov.services.map((srv) => (
-                        <div key={srv.id} style={{ background: '#fff', padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                          <span>✨ {srv.title}</span>
-                          <span style={{ color: '#16a34a', fontWeight: 'bold' }}>
-                            {srv.total_price} درهم (عربون: {srv.deposit_amount} درهم)
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <small style={{ color: '#64748b' }}>لم تُضف خدمات بعد.</small>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        ) : (
-          <div>
-            {myBookings.length === 0 ? (
-              <p style={{ textAlign: 'center', color: '#64748b', fontSize: 14, padding: 20 }}>
-                لا توجد لديك حجوزات مسجلة بهذا الرقم بعد.
-              </p>
-            ) : (
-              myBookings.map((b) => (
-                <div key={b.id} style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, marginBottom: 10, background: '#f8fafc' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <strong>{b.providers ? b.providers.business_name : 'مشروع'}</strong>
-                    <span style={{
-                      padding: '3px 8px',
-                      borderRadius: 6,
-                      fontSize: 12,
-                      fontWeight: 'bold',
-                      background: b.status === 'confirmed' ? '#dcfce7' : b.status === 'rejected' ? '#fee2e2' : '#fef9c3',
-                      color: b.status === 'confirmed' ? '#166534' : b.status === 'rejected' ? '#991b1b' : '#854d0e'
-                    }}>
-                      {b.status === 'confirmed' ? 'مؤكد ✅' : b.status === 'rejected' ? 'مرفوض ❌' : 'قيد المراجعة ⏳'}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 13, color: '#475569', marginTop: 6 }}>
-                    الخدمة: {b.services ? b.services.title : '-'} | العربون: {b.services ? b.services.deposit_amount : '-'} درهم
-                  </div>
-                  <div style={{ fontSize: 13, color: '#475569', marginTop: 4 }}>
-                    الموعد: {b.booking_date} الساعة {b.booking_time}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        <button
-          onClick={onBack}
-          style={{ width: '100%', marginTop: 12, background: '#0f172a', color: '#fff', border: 'none', padding: 12, borderRadius: 10, fontWeight: 'bold', cursor: 'pointer' }}
-        >
-          العودة للصفحة الرئيسية
-        </button>
       </div>
     );
   }
-
   return (
-    <div style={{ maxWidth: 420, margin: '20px auto', background: '#fff', padding: 24, borderRadius: 14, boxShadow: '0 4px 12px rgba(0,0,0,0.06)', fontFamily: 'sans-serif' }} dir="rtl">
-      <h2 style={{ textAlign: 'center', marginTop: 0, marginBottom: 6 }}>فضاء الزبائن</h2>
-      <p style={{ textAlign: 'center', color: '#64748b', fontSize: 13, marginBottom: 18 }}>
-        سجّل دخولك لتصفح العروض وحجز موعدك
-      </p>
-
-      <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
-        <button
-          type="button"
-          onClick={() => setMode('login')}
-          style={{ flex: 1, padding: 10, borderRadius: 8, border: 'none', fontWeight: 'bold', background: mode === 'login' ? '#2563eb' : '#f1f5f9', color: mode === 'login' ? '#fff' : '#334155', cursor: 'pointer' }}
-        >
-          تسجيل الدخول
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('register')}
-          style={{ flex: 1, padding: 10, borderRadius: 8, border: 'none', fontWeight: 'bold', background: mode === 'register' ? '#2563eb' : '#f1f5f9', color: mode === 'register' ? '#fff' : '#334155', cursor: 'pointer' }}
-        >
-          حساب جديد
-        </button>
+    <div style={{ ...pageFont, maxWidth: 440, margin: '12px auto', background: '#fff', borderRadius: 22, overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.06)' }}>
+      {/* الترويسة الاحترافية */}
+      <div style={{ background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)', color: '#fff', padding: '26px 20px', textAlign: 'center' }}>
+        <span style={{ background: 'rgba(255,255,255,0.18)', padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
+          عربون • 3arboon
+        </span>
+        <h2 style={{ margin: '10px 0 4px', fontSize: 22, fontWeight: 800 }}>فضاء الزبائن 👤</h2>
+        <p style={{ margin: 0, color: '#dbeafe', fontSize: 13 }}>سجّل دخولك لتصفح العروض وتتبع حجوزاتك</p>
       </div>
 
-      <form onSubmit={mode === 'login' ? handleLogin : handleRegister}>
-        {mode === 'register' && (
-          <div>
-            <label style={{ fontWeight: 'bold', fontSize: 14 }}>الاسم الكامل *</label>
-            <input type="text" placeholder="أدخل اسمك الكامل" style={input} value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-          </div>
-        )}
+      <div style={{ padding: 22 }}>
+        {/* أزرار التبديل بين الدخول والتسجيل */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20, background: '#f1f5f9', padding: 5, borderRadius: 14 }}>
+          <button
+            type="button"
+            onClick={() => setMode('login')}
+            style={{ flex: 1, padding: '10px 8px', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 14, background: mode === 'login' ? '#2563eb' : 'transparent', color: mode === 'login' ? '#fff' : '#475569', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            تسجيل الدخول
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('register')}
+            style={{ flex: 1, padding: '10px 8px', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 14, background: mode === 'register' ? '#2563eb' : 'transparent', color: mode === 'register' ? '#fff' : '#475569', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            حساب جديد
+          </button>
+        </div>
 
-        <label style={{ fontWeight: 'bold', fontSize: 14 }}>رقم الهاتف (واتساب) *</label>
-        <input type="tel" placeholder="06XXXXXXXX" style={input} value={phone} onChange={(e) => setPhone(e.target.value)} required />
+        <form onSubmit={mode === 'login' ? handleLogin : handleRegister}>
+          {mode === 'register' && (
+            <div>
+              <label style={{ fontWeight: 700, fontSize: 13 }}>الاسم الكامل *</label>
+              <input type="text" placeholder="أدخل اسمك الكامل" style={inputStyle} value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+            </div>
+          )}
 
-        <label style={{ fontWeight: 'bold', fontSize: 14 }}>الرمز السري (4 أرقام) *</label>
-        <input type="password" maxLength="6" placeholder="****" style={{ ...input, textAlign: 'center', letterSpacing: 6 }} value={pinCode} onChange={(e) => setPinCode(e.target.value)} required />
+          <label style={{ fontWeight: 700, fontSize: 13 }}>رقم الهاتف (واتساب) *</label>
+          <input type="tel" placeholder="06XXXXXXXX" style={inputStyle} value={phone} onChange={(e) => setPhone(e.target.value)} required />
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ width: '100%', background: '#16a34a', color: '#fff', border: 'none', padding: 13, borderRadius: 10, fontWeight: 'bold', fontSize: 16, cursor: 'pointer' }}
-        >
-          {loading ? 'جاري التحقق...' : mode === 'login' ? 'دخول لحسابي' : 'إنشاء حساب زبون'}
-        </button>
+          <label style={{ fontWeight: 700, fontSize: 13 }}>الرمز السري (4 أرقام) *</label>
+          <input type="password" maxLength="6" placeholder="****" style={{ ...inputStyle, textAlign: 'center', letterSpacing: 6, fontSize: 18 }} value={pinCode} onChange={(e) => setPinCode(e.target.value)} required />
 
-        <button
-          type="button"
-          onClick={onBack}
-          style={{ width: '100%', background: 'none', border: 'none', color: '#64748b', marginTop: 14, cursor: 'pointer', fontSize: 14 }}
-        >
-          → العودة للرئيسية
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={loading}
+            style={{ width: '100%', background: '#16a34a', color: '#fff', border: 'none', padding: 14, borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer', marginTop: 4, fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(22,163,74,0.25)' }}
+          >
+            {loading ? 'جاري التحقق...' : mode === 'login' ? 'دخول لحسابي ✓' : 'إنشاء حساب زبون ✓'}
+          </button>
+
+          <button
+            type="button"
+            onClick={onBack}
+            style={{ width: '100%', background: '#f1f5f9', border: 'none', color: '#475569', padding: 12, borderRadius: 12, marginTop: 12, cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'inherit' }}
+          >
+            → العودة للرئيسية
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
-
