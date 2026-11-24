@@ -103,7 +103,8 @@ export default function App() {
               </form>
             </div>
           ) : (
-            <DashboardPage provider={provider} bookings={bookings} onRefresh={loadData} />
+         <DashboardPage provider={provider} bookings={bookings} services={services} onRefresh={loadData} />
+
           )}
         </>
       )}
