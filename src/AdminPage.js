@@ -22,16 +22,18 @@ export default function AdminPage() {
 
   const fetchProviders = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('providers')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('providers')
+        .select('*');
 
-    if (error) {
-      console.error('خطأ في جلب البيانات:', error);
-      alert('حدث خطأ أثناء تحميل المشتركين');
-    } else {
-      setProviders(data || []);
+      if (error) {
+        alert('خطأ من قاعدة البيانات: ' + error.message);
+      } else {
+        setProviders(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      alert('حدث خطأ في الاتصال');
     }
     setLoading(false);
   };
@@ -44,8 +46,7 @@ export default function AdminPage() {
       .eq('id', id);
 
     if (error) {
-      alert('فشل تحديث حالة الحساب');
-      console.error(error);
+      alert('فشل تحديث الحالة: ' + error.message);
     } else {
       setProviders(providers.map(p => 
         p.id === id ? { ...p, is_active: newStatus } : p
@@ -54,7 +55,7 @@ export default function AdminPage() {
   };
 
   const deleteProvider = async (id, name) => {
-    if (!window.confirm(`هل أنت متأكد من حذف حساب "${name}" نهائياً؟`)) return;
+    if (!window.confirm(`هل أنت متأكد من حذف حساب "${name || 'هذا المشترك'}" نهائياً؟`)) return;
     
     const { error } = await supabase
       .from('providers')
@@ -66,11 +67,13 @@ export default function AdminPage() {
     }
   };
 
-  const filteredProviders = providers.filter(p => 
-    (p.business_name && p.full_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (p.business_name && p.salon_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (p.phone && p.phone.includes(searchTerm))
-  );
+  const filteredProviders = providers.filter(p => {
+    const term = searchTerm.toLowerCase();
+    const name = String(p.full_name || p.owner_name || '').toLowerCase();
+    const business = String(p.business_name || p.salon_name || '').toLowerCase();
+    const phone = String(p.phone || '');
+    return name.includes(term) || business.includes(term) || phone.includes(term);
+  });
 
   if (!isAuthenticated) {
     return React.createElement(
@@ -93,7 +96,7 @@ export default function AdminPage() {
       )
     );
   }
-    return React.createElement(
+  return React.createElement(
     'div',
     { style: styles.container, dir: 'rtl' },
     React.createElement(
@@ -122,11 +125,18 @@ export default function AdminPage() {
     }),
     loading
       ? React.createElement('p', { style: { textAlign: 'center', marginTop: '20px' } }, 'جاري التحميل...')
+      : filteredProviders.length === 0
+      ? React.createElement('p', { style: { textAlign: 'center', marginTop: '20px', color: '#6b7280' } }, 'لا يوجد مشتركون حالياً')
       : React.createElement(
           'div',
           { style: styles.list },
-          filteredProviders.map((provider) =>
-            React.createElement(
+          filteredProviders.map((provider) => {
+            const phoneStr = String(provider.phone || '');
+            const cleanPhone = phoneStr.replace(/^0+/, '');
+            const projectTitle = provider.business_name || provider.salon_name || 'بدون اسم مشروع';
+            const ownerName = provider.full_name || provider.owner_name || '-';
+
+            return React.createElement(
               'div',
               {
                 key: provider.id,
@@ -138,7 +148,7 @@ export default function AdminPage() {
               React.createElement(
                 'div',
                 { style: styles.cardHeader },
-                React.createElement('h3', { style: styles.salonName }, provider.salon_name || 'بدون اسم مشروع'),
+                React.createElement('h3', { style: styles.salonName }, projectTitle),
                 React.createElement(
                   'span',
                   {
@@ -148,12 +158,12 @@ export default function AdminPage() {
                       color: provider.is_active ? '#166534' : '#991b1b'
                     }
                   },
-                  provider.is_active ? 'حساب نشط' : 'بانتظار التفعيل / موقوف'
+                  provider.is_active ? 'حساب نشط' : 'موقوف'
                 )
               ),
-              React.createElement('p', { style: styles.infoText }, `👤 الاسم: ${provider.full_name || '-'}`),
-              React.createElement('p', { style: styles.infoText }, `📞 الهاتف: ${provider.phone || '-'}`),
-              React.createElement('p', { style: styles.infoText }, `🔗 الرابط: /${provider.slug || provider.custom_url || ''}`),
+              React.createElement('p', { style: styles.infoText }, `👤 الاسم: ${ownerName}`),
+              React.createElement('p', { style: styles.infoText }, `📞 الهاتف: ${phoneStr || '-'}`),
+              React.createElement('p', { style: styles.infoText }, `🔗 الرابط: /?p=${provider.slug || ''}`),
               React.createElement('p', { style: styles.infoText }, `🏦 RIB: ${provider.rib || '-'}`),
               React.createElement(
                 'div',
@@ -169,10 +179,10 @@ export default function AdminPage() {
                   },
                   provider.is_active ? 'إيقاف الحساب ⛔' : 'تفعيل الحساب ✅'
                 ),
-                provider.phone && React.createElement(
+                cleanPhone && React.createElement(
                   'a',
                   {
-                    href: `https://wa.me{provider.phone.replace(/^0/, '')}`,
+                    href: `https://wa.me{cleanPhone}`,
                     target: '_blank',
                     rel: 'noreferrer',
                     style: styles.whatsappBtn
@@ -182,14 +192,14 @@ export default function AdminPage() {
                 React.createElement(
                   'button',
                   {
-                    onClick: () => deleteProvider(provider.id, provider.business_name),
+                    onClick: () => deleteProvider(provider.id, projectTitle),
                     style: styles.deleteBtn
                   },
                   '🗑️'
                 )
               )
-            )
-          )
+            );
+          })
         )
   );
 }
