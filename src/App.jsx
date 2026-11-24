@@ -67,7 +67,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setView('register')}
-              style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: 13, fontWeight: 'bold', cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: 14, fontWeight: 'bold', cursor: 'pointer' }}
             >
               + هل لديك صالون أو مشروع؟ أنشئ صفحة حجزك مجاناً
             </button>
@@ -103,8 +103,7 @@ export default function App() {
               </form>
             </div>
           ) : (
-         <DashboardPage provider={provider} bookings={bookings} services={services} onRefresh={loadData} />
-
+            <DashboardPage provider={provider} bookings={bookings} services={services} onRefresh={loadData} />
           )}
         </>
       )}
