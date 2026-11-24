@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient';
 
 export default function RegisterPage({ onCancel }) {
   const [ownerName, setOwnerName] = useState('');
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [bizName, setBizName] = useState('');
   const [slug, setSlug] = useState('');
@@ -18,6 +19,7 @@ export default function RegisterPage({ onCancel }) {
     e.preventDefault();
     setLoading(true);
     const cleanSlug = slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    const cleanEmail = email.trim().toLowerCase();
 
     if (!cleanSlug) {
       alert('المرجو كتابة رابط مختصر صحيح بالحروف الإنجليزية');
@@ -30,19 +32,20 @@ export default function RegisterPage({ onCancel }) {
         .from('providers')
         .insert([{
           owner_name: ownerName.trim(),
+          email: cleanEmail,
           phone: phone.trim(),
           business_name: bizName.trim(),
           slug: cleanSlug,
           bank_name: bankName,
           rib: rib.trim(),
           pin_code: pin.trim(),
-          is_active: true
+          is_active: false
         }])
         .select()
         .single();
 
       if (pErr) {
-        throw new Error('هذا الرابط المختصر مستعمل مسبقاً، اختر اسماً آخر');
+        throw new Error('هذا الرابط المختصر أو البريد الإلكتروني مستعمل مسبقاً: ' + pErr.message);
       }
 
       const { error: sErr } = await supabase.from('services').insert([{
@@ -54,8 +57,8 @@ export default function RegisterPage({ onCancel }) {
 
       if (sErr) throw sErr;
 
-      alert(`مرحباً ${ownerName}! تم إنشاء صفحتك بنجاح.`);
-      window.location.href = `?p=${cleanSlug}`;
+      alert('مرحباً ' + ownerName + '! تم استلام طلب تسجيل مشروعك بنجاح. سيتم تفعيل حسابك من طرف الإدارة قريباً.');
+      if (onCancel) onCancel();
     } catch (err) {
       alert(err.message);
     } finally {
@@ -83,6 +86,9 @@ export default function RegisterPage({ onCancel }) {
       <form onSubmit={handleRegister}>
         <label style={{ fontWeight: 'bold', fontSize: 14 }}>الاسم الكامل لصاحب المشروع *</label>
         <input type="text" placeholder="مثال: حسام الطلحاوي" style={input} value={ownerName} onChange={(e) => setOwnerName(e.target.value)} required />
+
+        <label style={{ fontWeight: 'bold', fontSize: 14 }}>البريد الإلكتروني (لتسجيل الدخول) *</label>
+        <input type="email" placeholder="example@gmail.com" style={input} value={email} onChange={(e) => setEmail(e.target.value)} required />
 
         <label style={{ fontWeight: 'bold', fontSize: 14 }}>رقم الهاتف (واتساب) *</label>
         <input type="tel" placeholder="06XXXXXXXX" style={input} value={phone} onChange={(e) => setPhone(e.target.value)} required />
