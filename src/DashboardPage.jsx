@@ -9,18 +9,15 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // إنشاء رابط الحجز الخاص بالمشروع تلقائياً
+  // إنشاء رابط الحجز الخاص بالمشروع وتجهيز رابط مشاركة واتساب المباشر
   const bookingLink = `${window.location.origin}/?p=${provider.slug}`;
+  const shareText = encodeURIComponent(`مرحباً! يمكنك حجز موعدك في *${provider.business_name}* مباشرة عبر الرابط التالي:\n${bookingLink}`);
+  const whatsappShareUrl = `https://whatsapp.com{shareText}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(bookingLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
-  };
-
-  const handleShareWhatsApp = () => {
-    const msg = encodeURIComponent(`مرحباً! يمكنك حجز موعدك في *${provider.business_name}* مباشرة عبر الرابط التالي:\n${bookingLink}`);
-    window.open(`https://wa.me{msg}`, '_blank');
   };
 
   const updateStatus = async (b, newStatus) => {
@@ -33,7 +30,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
       let ph = String(b.client_phone || '').replace(/\s+/g, '');
       if (ph.startsWith('0')) ph = '212' + ph.slice(1);
       const txt = encodeURIComponent(`مرحباً ${b.client_name}، تم تأكيد موعدك في ${provider.business_name} يوم ${b.booking_date} الساعة ${b.booking_time}`);
-      window.open(`https://wa.me{ph}?text=${txt}`, '_blank');
+      window.location.href = `https://whatsapp.com{ph}&text=${txt}`;
     }
   };
 
@@ -83,12 +80,14 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
           >
             {copied ? 'تم النسخ ✅' : 'نسخ الرابط 📋'}
           </button>
-          <button
-            onClick={handleShareWhatsApp}
-            style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none', background: '#25D366', color: '#fff', fontWeight: 'bold', fontSize: 13, cursor: 'pointer' }}
+          <a
+            href={whatsappShareUrl}
+            target="_blank"
+            rel="noreferrer"
+            style={{ flex: 1, padding: '8px 12px', borderRadius: 8, background: '#25D366', color: '#fff', fontWeight: 'bold', fontSize: 13, textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             مشاركة واتساب 💬
-          </button>
+          </a>
         </div>
       </div>
 
