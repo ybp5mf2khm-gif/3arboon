@@ -42,6 +42,12 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     return ph;
   };
 
+  const getWhatsAppUrl = (b, customMsg) => {
+    const ph = formatMoroccanPhone(b.client_phone);
+    const defaultMsg = 'مرحباً ' + b.client_name + '، تم تأكيد موعدك في *' + provider.business_name + '* يوم ' + b.booking_date + ' الساعة ' + b.booking_time + '.';
+    return 'https://whatsapp.com' + ph + '&text=' + encodeURIComponent(customMsg || defaultMsg);
+  };
+
   const handleCopyLink = () => {
     navigator.clipboard.writeText(bookingLink);
     setCopied(true);
@@ -60,7 +66,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
         return;
       } catch (err) {}
     }
-    window.location.href = 'https://wa.me' + encodeURIComponent(textMsg);
+    window.location.assign('https://whatsapp.com' + encodeURIComponent(textMsg));
   };
 
   const upcomingReminders = bookings.filter((b) => {
@@ -88,11 +94,10 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
       return alert('تعذر التحديث: تأكد من تفعيل صلاحية UPDATE في إعدادات RLS لجدول bookings في Supabase.');
     }
 
-    if (onRefresh) onRefresh();
+    if (onRefresh) await onRefresh();
 
-    const ph = formatMoroccanPhone(b.client_phone);
     const msg = 'مرحباً ' + b.client_name + '، نذكرك بموعدك اليوم في *' + provider.business_name + '* على الساعة *' + b.booking_time + '*. نتشرف بحضورك!';
-    window.location.href = 'https://wa.me' + ph + '?text=' + encodeURIComponent(msg);
+    window.location.assign(getWhatsAppUrl(b, msg));
   };
 
   const updateStatus = async (b, newStatus) => {
@@ -107,17 +112,13 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
 
     if (error) return alert('خطأ: ' + error.message);
     if (!data || data.length === 0) {
-      return alert('لم يتم حفظ التغيير! السبب: صلاحية التعديل (UPDATE Policy) غير مفعلة على جدول bookings في Supabase.');
+      return alert('لم يتم حفظ التغيير! تأكد من تفعيل صلاحية UPDATE في Supabase.');
     }
 
     if (onRefresh) await onRefresh();
 
     if (newStatus === 'confirmed') {
-      const ph = formatMoroccanPhone(b.client_phone);
-      const txt = encodeURIComponent(
-        'مرحباً ' + b.client_name + '، تم تأكيد موعدك في *' + provider.business_name + '* يوم ' + b.booking_date + ' الساعة ' + b.booking_time + '.'
-      );
-      window.location.href = 'https://wa.me' + ph + '?text=' + txt;
+      window.location.assign(getWhatsAppUrl(b));
     } else {
       alert('تم رفض الحجز بنجاح');
     }
@@ -174,7 +175,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     if (paymentMethods.length === 0) return alert('يجب إضافة طريقة دفع واحدة على الأقل');
     setSavingSettings(true);
 
-    const firstPay = paymentMethods[0];
+    const firstPay = paymentMethods;
     const { error } = await supabase
       .from('providers')
       .update({
@@ -295,23 +296,40 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                   عرض الوصل ↗
                 </a>
               )}
-              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                <button
-                  type="button"
-                  disabled={updatingId === b.id}
-                  onClick={() => updateStatus(b, 'confirmed')}
-                  style={{ flex: 1, background: '#16a34a', color: '#fff', border: 'none', padding: 8, borderRadius: 6, fontWeight: 'bold', cursor: 'pointer' }}
-                >
-                  {updatingId === b.id ? 'جاري التنفيذ...' : 'قبول وواتساب'}
-                </button>
-                <button
-                  type="button"
-                  disabled={updatingId === b.id}
-                  onClick={() => updateStatus(b, 'rejected')}
-                  style={{ background: '#dc2626', color: '#fff', border: 'none', padding: 8, borderRadius: 6, fontWeight: 'bold', cursor: 'pointer' }}
-                >
-                  رفض
-                </button>
+              <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+                {b.status !== 'confirmed' && (
+                  <button
+                    type="button"
+                    disabled={updatingId === b.id}
+                    onClick={() => updateStatus(b, 'confirmed')}
+                    style={{ flex: 1, background: '#16a34a', color: '#fff', border: 'none', padding: 8, borderRadius: 6, fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    {updatingId === b.id ? 'جاري التنفيذ...' : 'قبول وواتساب'}
+                  </button>
+                )}
+
+                {b.status === 'confirmed' && (
+                  <a
+                    href={getWhatsAppUrl(b)}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ flex: 1, textAlign: 'center', textDecoration: 'none', background: '#25D366', color: '#fff', padding: 8, borderRadius: 6, fontWeight: 'bold', fontSize: 13 }}
+                  >
+                    مراسلة واتساب 💬
+                  </a>
+                )}
+
+                {b.status !== 'rejected' && (
+                  <button
+                    type="button"
+                    disabled={updatingId === b.id}
+                    onClick={() => updateStatus(b, 'rejected')}
+                    style={{ background: '#dc2626', color: '#fff', border: 'none', padding: 8, borderRadius: 6, fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    رفض
+                  </button>
+                )}
+
                 {b.status === 'confirmed' && (
                   <button
                     type="button"
@@ -428,12 +446,11 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             <label style={{ fontSize: 13 }}>الرمز السري (PIN)</label>
             <input type="text" maxLength="6" style={input} value={pinCode} onChange={(e) => setPinCode(e.target.value)} required />
           </div>
+<button type="submit" disabled={savingSettings} style={{ width: '100%', background: '#16a34a', color: '#fff', border: 'none', padding: 13, borderRadius: 10, fontWeight: 'bold', fontSize: 15 }}>
+{savingSettings ? 'جاري الحفظ...' : 'حفظ جميع الإعدادات ✅'}
 
-          <button type="submit" disabled={savingSettings} style={{ width: '100%', background: '#16a34a', color: '#fff', border: 'none', padding: 13, borderRadius: 10, fontWeight: 'bold', fontSize: 15 }}>
-            {savingSettings ? 'جاري الحفظ...' : 'حفظ جميع الإعدادات ✅'}
-          </button>
-        </form>
-      )}
-    </div>
-  );
+
+)}
+
+);
 }
