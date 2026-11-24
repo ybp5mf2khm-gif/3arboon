@@ -72,7 +72,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
         return;
       } catch (err) {}
     }
-    window.location.assign('https://wa.me?text=' + encodeURIComponent(textMsg));
+    window.location.assign('https://wa.me/?text=' + encodeURIComponent(textMsg));
   };
     const upcomingReminders = bookings.filter((b) => {
     if (b.status !== 'confirmed' || b.reminder_sent) return false;
