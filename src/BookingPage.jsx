@@ -2,18 +2,25 @@ import React, { useState } from 'react';
 import { supabase } from './supabaseClient';
 
 export default function BookingPage({ provider, services, onSuccess }) {
-  const [serviceId, setServiceId] = useState(services[0]?.id || '');
+  const defaultHours = (Array.isArray(provider.working_hours) && provider.working_hours.length > 0)
+    ? provider.working_hours
+    : ['10:00', '12:00', '15:00', '17:00'];
+
+  const paymentList = (Array.isArray(provider.payment_methods) && provider.payment_methods.length > 0)
+    ? provider.payment_methods
+    : (provider.rib ? [{ bank: provider.bank_name || 'CIH Bank', account: provider.rib }] : []);
+
+  const [serviceId, setServiceId] = useState(services && services.length > 0 ? services[0].id : '');
   const [date, setDate] = useState('');
-  const [time, setTime] = useState('10:00');
+  const [time, setTime] = useState(defaultHours[0]);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [file, setFile] = useState(null);
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const selectedSrv = services.find((s) => s.id === serviceId);
+  const selectedSrv = services.find((s) => String(s.id) === String(serviceId));
 
-  // تجهيز رابط واتساب صاحب المشروع تلقائياً
   const rawPhone = String(provider.phone || '').replace(/\s+/g, '');
   let providerWaPhone = rawPhone;
   if (providerWaPhone.startsWith('0')) {
@@ -23,13 +30,13 @@ export default function BookingPage({ provider, services, onSuccess }) {
   }
 
   const defaultWaText = encodeURIComponent(
-    'مرحباً ' + provider.business_name + '، أود الاستفسار أو تأكيد حجزي عبر منصة عربون.'
+    'مرحباً ' + provider.business_name + '، لقد قمت بحجز موعد وأرسلت وصل العربون عبر منصة عربون.'
   );
   const whatsappUrl = 'https://whatsapp.com' + providerWaPhone + '&text=' + defaultWaText;
 
-  const copyRib = () => {
-    navigator.clipboard.writeText(provider.rib);
-    alert('تم نسخ رقم الحساب البنكي');
+  const copyAccount = (acc) => {
+    navigator.clipboard.writeText(acc);
+    alert('تم نسخ رقم الحساب: ' + acc);
   };
 
   const handleSubmit = async (e) => {
@@ -57,7 +64,7 @@ export default function BookingPage({ provider, services, onSuccess }) {
       }]);
       if (insErr) throw insErr;
 
-      setMsg('تم إرسال طلبك بنجاح!');
+      setMsg('تم إرسال طلبك بنجاح! ✅');
       setName('');
       setPhone('');
       setFile(null);
@@ -68,8 +75,14 @@ export default function BookingPage({ provider, services, onSuccess }) {
       setLoading(false);
     }
   };
-
-  const input = { width: '100%', padding: 10, margin: '6px 0 12px', borderRadius: 8, border: '1px solid #cbd5e1', boxSizing: 'border-box' };
+  const input = {
+    width: '100%',
+    padding: 10,
+    margin: '6px 0 12px',
+    borderRadius: 8,
+    border: '1px solid #cbd5e1',
+    boxSizing: 'border-box'
+  };
 
   return (
     <div style={{ maxWidth: 460, margin: 'auto', background: '#fff', padding: 20, borderRadius: 14 }}>
@@ -89,19 +102,33 @@ export default function BookingPage({ provider, services, onSuccess }) {
 
         <label>الساعة</label>
         <select style={input} value={time} onChange={(e) => setTime(e.target.value)}>
-          <option value="10:00">10:00</option>
-          <option value="12:00">12:00</option>
-          <option value="15:00">15:00</option>
-          <option value="17:00">17:00</option>
+          {defaultHours.map((hr) => (
+            <option key={hr} value={hr}>{hr}</option>
+          ))}
         </select>
 
         {selectedSrv && (
           <div style={{ background: '#f0fdf4', padding: 12, borderRadius: 10, marginBottom: 12, border: '1px dashed #16a34a' }}>
-            <div>العربون المطلوب: <strong>{selectedSrv.deposit_amount} درهم</strong></div>
-            <div style={{ fontSize: 12, marginTop: 4 }}>{provider.bank_name}: {provider.rib}</div>
-            <button type="button" onClick={copyRib} style={{ marginTop: 6, background: '#16a34a', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: 6 }}>
-              نسخ RIB
-            </button>
+            <div style={{ marginBottom: 8 }}>
+              العربون المطلوب: <strong>{selectedSrv.deposit_amount} درهم</strong>
+            </div>
+            <div style={{ fontSize: 12, color: '#166534', marginBottom: 6, fontWeight: 'bold' }}>
+              اختر إحدى طرق الدفع المتاحة:
+            </div>
+            {paymentList.map((pm, idx) => (
+              <div key={idx} style={{ background: '#fff', padding: '8px 10px', borderRadius: 8, border: '1px solid #bbf7d0', marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontSize: 12, overflowX: 'auto' }}>
+                  <strong>{pm.bank}:</strong> <span style={{ direction: 'ltr', display: 'inline-block' }}>{pm.account}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => copyAccount(pm.account)}
+                  style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: 6, fontSize: 12, whiteSpace: 'nowrap', cursor: 'pointer' }}
+                >
+                  نسخ
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
@@ -114,14 +141,13 @@ export default function BookingPage({ provider, services, onSuccess }) {
         <label>صورة الوصل</label>
         <input type="file" accept="image/*" style={input} onChange={(e) => setFile(e.target.files[0])} required />
 
-        <button type="submit" disabled={loading} style={{ width: '100%', background: '#2563eb', color: '#fff', border: 'none', padding: 12, borderRadius: 10, fontWeight: 'bold' }}>
+        <button type="submit" disabled={loading} style={{ width: '100%', background: '#2563eb', color: '#fff', border: 'none', padding: 12, borderRadius: 10, fontWeight: 'bold', cursor: 'pointer' }}>
           {loading ? 'جاري الإرسال...' : 'تأكيد الحجز'}
         </button>
 
         {msg && <p style={{ textAlign: 'center', fontWeight: 'bold', marginTop: 10 }}>{msg}</p>}
       </form>
 
-      {/* زر مراسلة صاحب المشروع عبر واتساب */}
       {providerWaPhone && (
         <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
           <a
