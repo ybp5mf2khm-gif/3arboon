@@ -45,7 +45,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     const getWhatsAppUrl = (b, customMsg) => {
     const ph = formatMoroccanPhone(b.client_phone);
     const defaultMsg = 'مرحبا ' + b.client_name + '، تم تأكيد موعدك في ' + provider.business_name + ' يوم ' + b.booking_date + ' الساعة ' + b.booking_time;
-    return 'https://wa.me' + ph + '?text=' + encodeURIComponent(customMsg || defaultMsg);
+    return 'https://wa.me/' + ph + '?text=' + encodeURIComponent(customMsg || defaultMsg);
   };
 
 
