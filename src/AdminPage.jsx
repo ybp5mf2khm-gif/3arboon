@@ -67,8 +67,8 @@ export default function AdminPage() {
   };
 
   const filteredProviders = providers.filter(p => 
-    (p.full_name && p.full_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (p.salon_name && p.salon_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (p.business_name && p.full_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (p.business_name && p.salon_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (p.phone && p.phone.includes(searchTerm))
   );
 
@@ -182,7 +182,7 @@ export default function AdminPage() {
                 React.createElement(
                   'button',
                   {
-                    onClick: () => deleteProvider(provider.id, provider.salon_name),
+                    onClick: () => deleteProvider(provider.id, provider.business_name),
                     style: styles.deleteBtn
                   },
                   '🗑️'
