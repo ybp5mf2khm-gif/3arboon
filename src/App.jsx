@@ -94,6 +94,14 @@ export default function App() {
     );
   }
 
+  if (view === 'client') {
+  return (
+    <div style={{ padding: 12 }}>
+      <ClientPage onBack={() => setView('booking')} />
+    </div>
+  );
+}
+
   // الواجهة الرئيسية للمنصة عند الدخول بدون رابط صالون (?p=...)
   if (!slug && view === 'booking') {
     return (
@@ -121,8 +129,16 @@ export default function App() {
             }}
             style={{ width: '100%', background: '#f1f5f9', color: '#0f172a', border: '1px solid #cbd5e1', padding: 13, borderRadius: 12, fontWeight: 'bold', fontSize: 15, cursor: 'pointer' }}
           >
+            
             دخول أصحاب المشاريع (لوحة التحكم)
           </button>
+          <button
+  onClick={() => setView('client')}
+  style={{ width: '100%', marginTop: 10, background: '#fff', color: '#2563eb', border: '1px solid #2563eb', padding: 12, borderRadius: 12, fontWeight: 'bold', fontSize: 15, cursor: 'pointer' }}
+>
+  👤 فضاء الزبائن (تسجيل / تتبع حجوزاتي)
+</button>
+
 
           <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid #e2e8f0', textAlign: 'right' }}>
             <h4 style={{ margin: '0 0 12px', color: '#0f172a', fontSize: 15 }}>كيف تعمل منصة عربون؟</h4>
