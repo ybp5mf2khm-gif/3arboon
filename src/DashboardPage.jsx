@@ -8,15 +8,14 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
   const [deposit, setDeposit] = useState('');
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [updatingId, setUpdatingId] = useState(null);
 
-  // حالات تعديل البيانات
   const [bizName, setBizName] = useState(provider.business_name || '');
   const [ownerName, setOwnerName] = useState(provider.owner_name || '');
   const [phone, setPhone] = useState(provider.phone || '');
   const [email, setEmail] = useState(provider.email || '');
   const [pinCode, setPinCode] = useState(provider.pin_code || '');
 
-  // حالات البنوك وطرق الدفع المتعددة
   const initialPayments = (Array.isArray(provider.payment_methods) && provider.payment_methods.length > 0)
     ? provider.payment_methods
     : (provider.rib ? [{ bank: provider.bank_name || 'CIH Bank', account: provider.rib }] : []);
@@ -24,7 +23,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
   const [newBank, setNewBank] = useState('CIH Bank');
   const [newAccount, setNewAccount] = useState('');
 
-  // حالات ساعات العمل المتاحة
   const initialHours = (Array.isArray(provider.working_hours) && provider.working_hours.length > 0)
     ? provider.working_hours
     : ['10:00', '12:00', '15:00', '17:00'];
@@ -33,6 +31,16 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
   const [savingSettings, setSavingSettings] = useState(false);
 
   const bookingLink = window.location.origin + '/?p=' + provider.slug;
+
+  const formatMoroccanPhone = (rawPhone) => {
+    let ph = String(rawPhone || '').replace(/\D/g, '');
+    if (ph.startsWith('0')) {
+      ph = '212' + ph.slice(1);
+    } else if (ph && !ph.startsWith('212')) {
+      ph = '212' + ph;
+    }
+    return ph;
+  };
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(bookingLink);
@@ -52,10 +60,9 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
         return;
       } catch (err) {}
     }
-    window.location.href = 'whatsapp://send?text=' + encodeURIComponent(textMsg);
+    window.location.href = 'https://wa.me' + encodeURIComponent(textMsg);
   };
 
-  // تصفية المواعيد المؤكدة التي تبقى لها ساعتان أو أقل ولم يتم تذكيرها
   const upcomingReminders = bookings.filter((b) => {
     if (b.status !== 'confirmed' || b.reminder_sent) return false;
     if (!b.booking_date || !b.booking_time) return false;
@@ -66,36 +73,55 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     return diffHours <= 2 && diffHours >= -1;
   });
 
-  // إرسال رسالة التذكير وتحديث الحالة في قاعدة البيانات
   const handleSendReminder = async (b) => {
-    await supabase.from('bookings').update({ reminder_sent: true }).eq('id', b.id);
-    if (onRefresh) onRefresh();
+    setUpdatingId(b.id);
+    const { data, error } = await supabase
+      .from('bookings')
+      .update({ reminder_sent: true })
+      .eq('id', b.id)
+      .select();
 
-    let ph = String(b.client_phone || '').replace(/\s+/g, '');
-    if (ph.startsWith('0')) {
-      ph = '212' + ph.slice(1);
-    } else if (ph && !ph.startsWith('212')) {
-      ph = '212' + ph;
+    setUpdatingId(null);
+
+    if (error) return alert('خطأ في قاعدة البيانات: ' + error.message);
+    if (!data || data.length === 0) {
+      return alert('تعذر التحديث: تأكد من تفعيل صلاحية UPDATE في إعدادات RLS لجدول bookings في Supabase.');
     }
 
+    if (onRefresh) onRefresh();
+
+    const ph = formatMoroccanPhone(b.client_phone);
     const msg = 'مرحباً ' + b.client_name + '، نذكرك بموعدك اليوم في *' + provider.business_name + '* على الساعة *' + b.booking_time + '*. نتشرف بحضورك!';
-    window.location.href = 'https://whatsapp.com' + ph + '&text=' + encodeURIComponent(msg);
+    window.location.href = 'https://wa.me' + ph + '?text=' + encodeURIComponent(msg);
   };
 
   const updateStatus = async (b, newStatus) => {
-    const { error } = await supabase.from('bookings').update({ status: newStatus }).eq('id', b.id);
-    if (error) return alert('خطأ: ' + error.message);
+    setUpdatingId(b.id);
+    const { data, error } = await supabase
+      .from('bookings')
+      .update({ status: newStatus })
+      .eq('id', b.id)
+      .select();
 
-    onRefresh();
+    setUpdatingId(null);
+
+    if (error) return alert('خطأ: ' + error.message);
+    if (!data || data.length === 0) {
+      return alert('لم يتم حفظ التغيير! السبب: صلاحية التعديل (UPDATE Policy) غير مفعلة على جدول bookings في Supabase.');
+    }
+
+    if (onRefresh) await onRefresh();
 
     if (newStatus === 'confirmed') {
-      let ph = String(b.client_phone || '').replace(/\s+/g, '');
-      if (ph.startsWith('0')) ph = '212' + ph.slice(1);
-      const txt = encodeURIComponent('مرحباً ' + b.client_name + '، تم تأكيد موعدك في ' + provider.business_name + ' يوم ' + b.booking_date + ' الساعة ' + b.booking_time);
-      window.location.href = 'https://whatsapp.com' + ph + '&text=' + txt;
+      const ph = formatMoroccanPhone(b.client_phone);
+      const txt = encodeURIComponent(
+        'مرحباً ' + b.client_name + '، تم تأكيد موعدك في *' + provider.business_name + '* يوم ' + b.booking_date + ' الساعة ' + b.booking_time + '.'
+      );
+      window.location.href = 'https://wa.me' + ph + '?text=' + txt;
+    } else {
+      alert('تم رفض الحجز بنجاح');
     }
   };
-
   const handleAddService = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -148,7 +174,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     if (paymentMethods.length === 0) return alert('يجب إضافة طريقة دفع واحدة على الأقل');
     setSavingSettings(true);
 
-    const firstPay = paymentMethods;
+    const firstPay = paymentMethods[0];
     const { error } = await supabase
       .from('providers')
       .update({
@@ -169,6 +195,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     alert('تم حفظ جميع التعديلات بنجاح ✅');
     onRefresh();
   };
+
   const input = {
     width: '100%',
     padding: 10,
@@ -195,10 +222,11 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
               </div>
               <button
                 type="button"
+                disabled={updatingId === rem.id}
                 onClick={() => handleSendReminder(rem)}
                 style={{ background: '#ea580c', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: 8, fontWeight: 'bold', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}
               >
-                إرسال تذكير 💬
+                {updatingId === rem.id ? 'جاري...' : 'إرسال تذكير 💬'}
               </button>
             </div>
           ))}
@@ -250,7 +278,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
           الإعدادات ⚙️
         </button>
       </div>
-
       {tab === 'bookings' && (
         <div>
           {bookings.length === 0 && <p style={{ textAlign: 'center', color: '#64748b' }}>لا توجد حجوزات بعد.</p>}
@@ -258,7 +285,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             <div key={b.id} style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <strong>{b.client_name}</strong>
-                <span>{b.status === 'confirmed' ? 'مؤكد' : b.status === 'rejected' ? 'مرفوض' : 'معلق'}</span>
+                <span>{b.status === 'confirmed' ? 'مؤكد ✅' : b.status === 'rejected' ? 'مرفوض ❌' : 'معلق ⏳'}</span>
               </div>
               <div style={{ fontSize: 13, color: '#475569', marginTop: 4 }}>
                 {b.booking_date} | {b.booking_time} | {b.client_phone}
@@ -269,16 +296,28 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                 </a>
               )}
               <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                <button onClick={() => updateStatus(b, 'confirmed')} style={{ flex: 1, background: '#16a34a', color: '#fff', border: 'none', padding: 8, borderRadius: 6 }}>
-                  قبول وواتساب
+                <button
+                  type="button"
+                  disabled={updatingId === b.id}
+                  onClick={() => updateStatus(b, 'confirmed')}
+                  style={{ flex: 1, background: '#16a34a', color: '#fff', border: 'none', padding: 8, borderRadius: 6, fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  {updatingId === b.id ? 'جاري التنفيذ...' : 'قبول وواتساب'}
                 </button>
-                <button onClick={() => updateStatus(b, 'rejected')} style={{ background: '#dc2626', color: '#fff', border: 'none', padding: 8, borderRadius: 6 }}>
+                <button
+                  type="button"
+                  disabled={updatingId === b.id}
+                  onClick={() => updateStatus(b, 'rejected')}
+                  style={{ background: '#dc2626', color: '#fff', border: 'none', padding: 8, borderRadius: 6, fontWeight: 'bold', cursor: 'pointer' }}
+                >
                   رفض
                 </button>
                 {b.status === 'confirmed' && (
                   <button
+                    type="button"
+                    disabled={updatingId === b.id}
                     onClick={() => handleSendReminder(b)}
-                    style={{ background: b.reminder_sent ? '#e2e8f0' : '#f97316', color: b.reminder_sent ? '#475569' : '#fff', border: 'none', padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 'bold' }}
+                    style={{ background: b.reminder_sent ? '#e2e8f0' : '#f97316', color: b.reminder_sent ? '#475569' : '#fff', border: 'none', padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 'bold', cursor: 'pointer' }}
                   >
                     {b.reminder_sent ? 'ذُكّر ✅' : 'تذكير ⏰'}
                   </button>
@@ -288,6 +327,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
           ))}
         </div>
       )}
+
       {tab === 'services' && (
         <div>
           <form onSubmit={handleAddService} style={{ background: '#f8fafc', padding: 12, borderRadius: 10, marginBottom: 16, border: '1px solid #e2e8f0' }}>
