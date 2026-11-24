@@ -22,23 +22,20 @@ export default function BookingPage({ provider, services, onSuccess }) {
 
   const selectedSrv = services.find((s) => String(s.id) === String(serviceId));
 
-  const formatMoroccanPhone = (rawPhone) => {
-    let ph = String(rawPhone || '').replace(/\D/g, '');
-    if (ph.startsWith('0')) {
-      ph = '212' + ph.slice(1);
-    } else if (ph && !ph.startsWith('212')) {
-      ph = '212' + ph;
-    }
-    return ph;
+  const rawPhone = String(provider.phone || '').replace(/\D/g, '');
+  let providerWaPhone = rawPhone;
+  if (providerWaPhone.startsWith('0')) {
+    providerWaPhone = '212' + providerWaPhone.slice(1);
+  } else if (providerWaPhone && !providerWaPhone.startsWith('212')) {
+    providerWaPhone = '212' + providerWaPhone;
+  }
+
+  const buildWhatsAppUrl = (text) => {
+    return 'https://wa.me/' + providerWaPhone + '?text=' + encodeURIComponent(text);
   };
 
-  const providerWaPhone = formatMoroccanPhone(provider.phone);
-
-  const buildWhatsAppUrl = (customText) => {
-    return 'https://wa.me' + providerWaPhone + '?text=' + encodeURIComponent(customText);
-  };
-
-  const inquiryWaText = 'مرحبا ' + provider.business_name + '، أود الاستفسار بخصوص حجز موعد' +
+  const inquiryWaText =
+    'مرحبا ' + provider.business_name + '، أود الاستفسار بخصوص حجز موعد' +
     (selectedSrv ? ' لخدمة: ' + selectedSrv.title : '') +
     (date ? ' يوم ' + date + ' الساعة ' + time : '');
 
@@ -72,19 +69,15 @@ export default function BookingPage({ provider, services, onSuccess }) {
       }]);
       if (insErr) throw insErr;
 
-      const srvTitle = selectedSrv ? selectedSrv.title : '';
-      const srvDeposit = selectedSrv ? selectedSrv.deposit_amount : '';
-
       setBookedInfo({
         clientName: name,
-        clientPhone: phone,
-        serviceTitle: srvTitle,
-        depositAmount: srvDeposit,
+        serviceTitle: selectedSrv ? selectedSrv.title : '',
+        depositAmount: selectedSrv ? selectedSrv.deposit_amount : '',
         date: date,
         time: time
       });
 
-      setMsg('');
+      setMsg('تم إرسال طلبك بنجاح! ✅');
       setName('');
       setPhone('');
       setFile(null);
@@ -106,7 +99,7 @@ export default function BookingPage({ provider, services, onSuccess }) {
 
   if (bookedInfo) {
     const confirmWaText =
-      'مرحبا ' + provider.business_name + '، لقد قمت بحجز موعد عبر منصة عربون وأرسلت وصل الدفع:\n' +
+      'مرحبا ' + provider.business_name + '، قمت بحجز موعد عبر منصة عربون وأرسلت الوصل:\n' +
       'الاسم: ' + bookedInfo.clientName + '\n' +
       'الخدمة: ' + bookedInfo.serviceTitle + '\n' +
       'التاريخ: ' + bookedInfo.date + ' الساعة ' + bookedInfo.time + '\n' +
@@ -117,7 +110,7 @@ export default function BookingPage({ provider, services, onSuccess }) {
         <div style={{ fontSize: 42, marginBottom: 8 }}>✅</div>
         <h2 style={{ margin: '0 0 8px', color: '#16a34a' }}>تم تسجيل طلب حجزك!</h2>
         <p style={{ color: '#475569', fontSize: 14, marginBottom: 16 }}>
-          خطوة أخيرة: اضغط على الزر الأخضر لإرسال تفاصيل حجزك لصاحب المشروع عبر واتساب وتأكيد الموعد.
+          خطوة أخيرة: اضغط على الزر الأخضر لإرسال تفاصيل حجزك لصاحب المشروع عبر واتساب.
         </p>
 
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, textAlign: 'right', fontSize: 13, marginBottom: 16 }}>
@@ -141,7 +134,7 @@ export default function BookingPage({ provider, services, onSuccess }) {
               fontSize: 15,
               textDecoration: 'none',
               boxSizing: 'border-box',
-              marginBottom: 12
+              marginBottom: 10
             }}
           >
             أرسل تفاصيل الحجز عبر واتساب 💬
