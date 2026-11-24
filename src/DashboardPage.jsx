@@ -7,6 +7,21 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
   const [price, setPrice] = useState('');
   const [deposit, setDeposit] = useState('');
   const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // إنشاء رابط الحجز الخاص بالمشروع تلقائياً
+  const bookingLink = `${window.location.origin}/?p=${provider.slug}`;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(bookingLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleShareWhatsApp = () => {
+    const msg = encodeURIComponent(`مرحباً! يمكنك حجز موعدك في *${provider.business_name}* مباشرة عبر الرابط التالي:\n${bookingLink}`);
+    window.open(`https://wa.me{msg}`, '_blank');
+  };
 
   const updateStatus = async (b, newStatus) => {
     const { error } = await supabase.from('bookings').update({ status: newStatus }).eq('id', b.id);
@@ -15,7 +30,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     onRefresh();
 
     if (newStatus === 'confirmed') {
-      let ph = b.client_phone.replace(/\s+/g, '');
+      let ph = String(b.client_phone || '').replace(/\s+/g, '');
       if (ph.startsWith('0')) ph = '212' + ph.slice(1);
       const txt = encodeURIComponent(`مرحباً ${b.client_name}، تم تأكيد موعدك في ${provider.business_name} يوم ${b.booking_date} الساعة ${b.booking_time}`);
       window.open(`https://wa.me{ph}?text=${txt}`, '_blank');
@@ -51,7 +66,31 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
 
   return (
     <div style={{ maxWidth: 460, margin: 'auto', background: '#fff', padding: 20, borderRadius: 14 }}>
-      <h3 style={{ textAlign: 'center', marginTop: 0 }}>{provider.business_name}</h3>
+      <h3 style={{ textAlign: 'center', marginTop: 0, marginBottom: 12 }}>{provider.business_name}</h3>
+
+      {/* صندوق رابط الحجز الخاص بالمشروع */}
+      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6, fontWeight: 'bold' }}>
+          🔗 رابط الحجز الخاص بزبائنك:
+        </div>
+        <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: 6, padding: '8px 10px', fontSize: 13, color: '#0f172a', direction: 'ltr', textAlign: 'left', overflowX: 'auto', whiteSpace: 'nowrap', marginBottom: 10 }}>
+          {bookingLink}
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={handleCopyLink}
+            style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none', background: copied ? '#16a34a' : '#0f172a', color: '#fff', fontWeight: 'bold', fontSize: 13, cursor: 'pointer' }}
+          >
+            {copied ? 'تم النسخ ✅' : 'نسخ الرابط 📋'}
+          </button>
+          <button
+            onClick={handleShareWhatsApp}
+            style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none', background: '#25D366', color: '#fff', fontWeight: 'bold', fontSize: 13, cursor: 'pointer' }}
+          >
+            مشاركة واتساب 💬
+          </button>
+        </div>
+      </div>
 
       {/* أزرار التبويب داخل لوحة التحكم */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
