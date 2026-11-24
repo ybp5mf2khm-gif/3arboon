@@ -170,15 +170,14 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
           >
             {copied ? 'تم النسخ ✅' : 'نسخ الرابط 📋'}
           </button>
-          <a
-            href={whatsappShareUrl}
-            target="_blank"
-            rel="noreferrer"
-            style={{ flex: 1, padding: '8px 12px', borderRadius: 8, background: '#25D366', color: '#fff', fontWeight: 'bold', fontSize: 13, textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    <button
+            type="button"
+            onClick={handleShareWhatsApp}
+            style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none', background: '#25D366', color: '#fff', fontWeight: 'bold', fontSize: 13, cursor: 'pointer' }}
           >
             مشاركة واتساب 💬
-          </a>
-        </div>
+          </button>
+
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
