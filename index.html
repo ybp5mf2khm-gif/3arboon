@@ -4,168 +4,72 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>عربون - حجز المواعيد</title>
+  <script src="https://tailwindcss.com"></script>
   <script src="https://jsdelivr.net"></script>
-  <style>
-    body { font-family: system-ui, -apple-system, sans-serif; background: #f4f6f9; margin: 0; padding: 16px; color: #1e293b; }
-    .container { max-width: 480px; margin: auto; background: #fff; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
-    h1 { font-size: 22px; margin-bottom: 4px; color: #0f172a; text-align: center; }
-    .subtitle { text-align: center; color: #64748b; font-size: 14px; margin-bottom: 20px; }
-    label { display: block; font-weight: 600; margin: 14px 0 6px; font-size: 14px; }
-    select, input { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 15px; box-sizing: border-box; }
-    .bank-box { background: #f0fdf4; border: 1px dashed #16a34a; padding: 14px; border-radius: 12px; margin-top: 16px; }
-    .rib-row { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 8px 10px; border-radius: 8px; margin-top: 8px; border: 1px solid #dcfce7; font-family: monospace; font-size: 13px; }
-    .copy-btn { background: #16a34a; color: #fff; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
-    .submit-btn { width: 100%; background: #2563eb; color: #fff; border: none; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: bold; margin-top: 20px; cursor: pointer; }
-    .submit-btn:disabled { background: #94a3b8; }
-    .msg { text-align: center; margin-top: 14px; font-weight: 600; font-size: 14px; }
-  </style>
 </head>
-<body>
+<body class="bg-slate-100 p-4 text-slate-800">
 
-<div class="container">
-  <h1 id="bizName">جاري التحميل...</h1>
-  <p class="subtitle">احجز موعدك وأكده بإرسال وصل العربون</p>
+<div class="max-w-md mx-auto bg-white p-6 rounded-2xl shadow-md">
+  <h1 id="bizName" class="text-xl font-bold text-center text-slate-900">جاري التحميل...</h1>
+  <p class="text-center text-slate-500 text-sm mb-5">احجز موعدك وأكده بإرسال وصل العربون</p>
 
-  <form id="bookingForm">
-    <label>اختر الخدمة</label>
-    <select id="serviceSelect" required></select>
+  <form id="bookingForm" class="space-y-4">
+    <div>
+      <label class="block font-semibold text-sm mb-1">اختر الخدمة</label>
+      <select id="serviceSelect" class="w-full p-3 border border-slate-300 rounded-xl" required></select>
+    </div>
 
-    <label>تاريخ الموعد</label>
-    <input type="date" id="bookingDate" required>
+    <div>
+      <label class="block font-semibold text-sm mb-1">تاريخ الموعد</label>
+      <input type="date" id="bookingDate" class="w-full p-3 border border-slate-300 rounded-xl" required>
+    </div>
 
-    <label>الساعة المناسبة</label>
-    <select id="bookingTime" required>
-      <option value="10:00">10:00 صباحاً</option>
-      <option value="11:30">11:30 صباحاً</option>
-      <option value="14:00">14:00 زوالاً</option>
-      <option value="16:00">16:00 مساءً</option>
-      <option value="18:00">18:00 مساءً</option>
-    </select>
+    <div>
+      <label class="block font-semibold text-sm mb-1">الساعة المناسبة</label>
+      <select id="bookingTime" class="w-full p-3 border border-slate-300 rounded-xl" required>
+        <option value="10:00">10:00 صباحاً</option>
+        <option value="11:30">11:30 صباحاً</option>
+        <option value="14:00">14:00 زوالاً</option>
+        <option value="16:00">16:00 مساءً</option>
+        <option value="18:00">18:00 مساءً</option>
+      </select>
+    </div>
 
-    <div class="bank-box" id="bankBox" style="display:none;">
-      <div style="font-size:14px; color:#15803d;">
+    <div id="bankBox" style="display:none;" class="bg-green-50 border border-dashed border-green-600 p-4 rounded-xl">
+      <div class="text-sm text-green-800">
         المطلوب دفع عربون: <strong id="depositText">0 درهم</strong>
       </div>
-      <div style="font-size:12px; color:#475569; margin-top:4px;">
+      <div class="text-xs text-slate-600 mt-1">
         البنك: <span id="bankName"></span>
       </div>
-      <div class="rib-row">
+      <div class="flex justify-between items-center bg-white p-2 rounded-lg mt-2 border border-green-200 font-mono text-xs">
         <span id="ribText"></span>
-        <button type="button" class="copy-btn" onclick="copyRib()">نسخ RIB</button>
+        <button type="button" onclick="copyRib()" class="bg-green-600 text-white px-3 py-1 rounded-md">نسخ RIB</button>
       </div>
     </div>
 
-    <label>الاسم الكامل</label>
-    <input type="text" id="clientName" placeholder="مثال: سلمى العلمي" required>
+    <div>
+      <label class="block font-semibold text-sm mb-1">الاسم الكامل</label>
+      <input type="text" id="clientName" placeholder="مثال: سلمى العلمي" class="w-full p-3 border border-slate-300 rounded-xl" required>
+    </div>
 
-    <label>رقم الواتساب</label>
-    <input type="tel" id="clientPhone" placeholder="06XXXXXXXX" required>
+    <div>
+      <label class="block font-semibold text-sm mb-1">رقم الواتساب</label>
+      <input type="tel" id="clientPhone" placeholder="06XXXXXXXX" class="w-full p-3 border border-slate-300 rounded-xl" required>
+    </div>
 
-    <label>صورة وصل التحويل (العربون)</label>
-    <input type="file" id="receiptFile" accept="image/*" required>
+    <div>
+      <label class="block font-semibold text-sm mb-1">صورة وصل التحويل (العربون)</label>
+      <input type="file" id="receiptFile" accept="image/*" class="w-full p-2 border border-slate-300 rounded-xl" required>
+    </div>
 
-    <button type="submit" class="submit-btn" id="submitBtn">تأكيد الحجز وإرسال الوصل</button>
-    <div class="msg" id="statusMsg"></div>
+    <button type="submit" id="submitBtn" class="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold text-base">
+      تأكيد الحجز وإرسال الوصل
+    </button>
+    <div id="statusMsg" class="text-center font-semibold text-sm mt-2"></div>
   </form>
 </div>
 
-<script>
-  const SUPABASE_URL = 'https://hqugjgirjgilhnuktuqr.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_WhS2LkfbQLZRr8xNQtKuOg__4klxU_T';
-  const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const slug = urlParams.get('p') || 'sara-beauty';
-  let currentProvider = null;
-  let servicesList = [];
-
-  async function initPage() {
-    const { data: provider, error } = await db.from('providers').select('*').eq('slug', slug).single();
-    if (error || !provider || !provider.is_active) {
-      document.getElementById('bizName').innerText = 'الصفحة غير متوفرة حالياً';
-      document.getElementById('bookingForm').style.display = 'none';
-      return;
-    }
-
-    currentProvider = provider;
-    document.getElementById('bizName').innerText = provider.business_name;
-    document.getElementById('bankName').innerText = provider.bank_name;
-    document.getElementById('ribText').innerText = provider.rib;
-    document.getElementById('bankBox').style.display = 'block';
-
-    const { data: services } = await db.from('services').select('*').eq('provider_id', provider.id);
-    servicesList = services || [];
-    const select = document.getElementById('serviceSelect');
-    servicesList.forEach(s => {
-      const opt = document.createElement('option');
-      opt.value = s.id;
-      opt.text = `${s.title} (${s.total_price} درهم - العربون: ${s.deposit_amount} درهم)`;
-      select.appendChild(opt);
-    });
-    updateDepositDisplay();
-  }
-
-  function updateDepositDisplay() {
-    const selectedId = document.getElementById('serviceSelect').value;
-    const srv = servicesList.find(s => s.id === selectedId);
-    if (srv) {
-      document.getElementById('depositText').innerText = `${srv.deposit_amount} درهم مغربي`;
-    }
-  }
-
-  document.getElementById('serviceSelect').addEventListener('change', updateDepositDisplay);
-
-  function copyRib() {
-    const rib = document.getElementById('ribText').innerText;
-    navigator.clipboard.writeText(rib);
-    alert('تم نسخ رقم الحساب البنكي!');
-  }
-
-  document.getElementById('bookingForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('submitBtn');
-    const msg = document.getElementById('statusMsg');
-    btn.disabled = true;
-    msg.style.color = '#2563eb';
-    msg.innerText = 'جاري رفع الوصل وتسجيل الحجز...';
-
-    try {
-      const fileInput = document.getElementById('receiptFile');
-      const file = fileInput.files.item(0);
-      if (!file) throw new Error('المرجو اختيار صورة الوصل');
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await db.storage.from('receipts').upload(fileName, file);
-      if (uploadError) throw uploadError;
-
-      const { data: publicUrlData } = db.storage.from('receipts').getPublicUrl(fileName);
-
-      const { error: insertError } = await db.from('bookings').insert([{
-        provider_id: currentProvider.id,
-        service_id: document.getElementById('serviceSelect').value,
-        client_name: document.getElementById('clientName').value,
-        client_phone: document.getElementById('clientPhone').value,
-        booking_date: document.getElementById('bookingDate').value,
-        booking_time: document.getElementById('bookingTime').value,
-        receipt_url: publicUrlData.publicUrl
-      }]);
-
-      if (insertError) throw insertError;
-
-      msg.style.color = '#16a34a';
-      msg.innerText = 'تم إرسال طلبك بنجاح! سيتواصل معك صاحب الخدمة عبر واتساب لتأكيد الموعد.';
-      document.getElementById('bookingForm').reset();
-    } catch (err) {
-      msg.style.color = '#dc2626';
-      msg.innerText = 'حدث خطأ: ' + err.message;
-    } finally {
-      btn.disabled = false;
-    }
-  });
-
-  initPage();
-</script>
+<script src="app.js"></script>
 </body>
 </html>
