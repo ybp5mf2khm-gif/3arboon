@@ -34,7 +34,21 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
 
   const bookingLink = window.location.origin + '/?p=' + provider.slug;
   const shareText = encodeURIComponent('مرحباً! يمكنك حجز موعدك في *' + provider.business_name + '* مباشرة عبر الرابط التالي:\n' + bookingLink);
-  const whatsappShareUrl = 'https://whatsapp.com' + shareText;
+    const handleShareWhatsApp = async () => {
+    const textMsg = 'مرحباً! يمكنك حجز موعدك في *' + provider.business_name + '* مباشرة عبر الرابط التالي:\n' + bookingLink;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: provider.business_name,
+          text: textMsg,
+          url: bookingLink
+        });
+        return;
+      } catch (err) {}
+    }
+    window.location.href = 'whatsapp://send?text=' + encodeURIComponent(textMsg);
+  };
+
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(bookingLink);
