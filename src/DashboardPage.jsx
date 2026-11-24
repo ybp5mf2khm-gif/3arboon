@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { supabase } from './supabaseClient';
 
+const ALL_HALF_HOURS = [];
+for (let h = 8; h <= 23; h++) {
+  const hh = String(h).padStart(2, '0');
+  ALL_HALF_HOURS.push(hh + ':00');
+  ALL_HALF_HOURS.push(hh + ':30');
+}
+
 export default function DashboardPage({ provider, bookings, services, onRefresh }) {
   const [tab, setTab] = useState('bookings');
   const [title, setTitle] = useState('');
@@ -25,9 +32,8 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
 
   const initialHours = (Array.isArray(provider.working_hours) && provider.working_hours.length > 0)
     ? provider.working_hours
-    : ['10:00', '12:00', '15:00', '17:00'];
+    : ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'];
   const [workingHours, setWorkingHours] = useState(initialHours);
-  const [newHour, setNewHour] = useState('09:00');
   const [savingSettings, setSavingSettings] = useState(false);
 
   const bookingLink = window.location.origin + '/?p=' + provider.slug;
@@ -42,12 +48,11 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     return ph;
   };
 
-    const getWhatsAppUrl = (b, customMsg) => {
+  const getWhatsAppUrl = (b, customMsg) => {
     const ph = formatMoroccanPhone(b.client_phone);
     const defaultMsg = 'مرحبا ' + b.client_name + '، تم تأكيد موعدك في ' + provider.business_name + ' يوم ' + b.booking_date + ' الساعة ' + b.booking_time;
     return 'https://wa.me/' + ph + '?text=' + encodeURIComponent(customMsg || defaultMsg);
   };
-
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(bookingLink);
@@ -56,7 +61,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
   };
 
   const handleShareWhatsApp = async () => {
-    const textMsg = 'مرحباً! يمكنك حجز موعدك في *' + provider.business_name + '* مباشرة عبر الرابط التالي:\n' + bookingLink;
+    const textMsg = 'مرحبا! يمكنك حجز موعدك في ' + provider.business_name + ' مباشرة عبر الرابط التالي:\n' + bookingLink;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -67,9 +72,9 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
         return;
       } catch (err) {}
     }
-    window.location.assign('https://whatsapp.com' + encodeURIComponent(textMsg));
+    window.location.assign('https://wa.me?text=' + encodeURIComponent(textMsg));
   };
-  const upcomingReminders = bookings.filter((b) => {
+    const upcomingReminders = bookings.filter((b) => {
     if (b.status !== 'confirmed' || b.reminder_sent) return false;
     if (!b.booking_date || !b.booking_time) return false;
     const apptTime = new Date(b.booking_date + 'T' + b.booking_time + ':00');
@@ -96,7 +101,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
 
     if (onRefresh) await onRefresh();
 
-    const msg = 'مرحباً ' + b.client_name + '، نذكرك بموعدك اليوم في *' + provider.business_name + '* على الساعة *' + b.booking_time + '*. نتشرف بحضورك!';
+    const msg = 'مرحبا ' + b.client_name + '، نذكرك بموعدك اليوم في ' + provider.business_name + ' على الساعة ' + b.booking_time + '. نتشرف بحضورك!';
     window.location.assign(getWhatsAppUrl(b, msg));
   };
 
@@ -159,20 +164,28 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     setPaymentMethods(paymentMethods.filter((_, i) => i !== idx));
   };
 
-  const addWorkingHour = () => {
-    if (!newHour) return;
-    if (workingHours.includes(newHour)) return alert('هذه الساعة مضافة مسبقاً');
-    const updated = [...workingHours, newHour].sort();
-    setWorkingHours(updated);
+  const toggleWorkingHour = (hr) => {
+    if (workingHours.includes(hr)) {
+      if (workingHours.length <= 1) return alert('يجب ترك وقت عمل واحد على الأقل');
+      setWorkingHours(workingHours.filter((h) => h !== hr));
+    } else {
+      setWorkingHours([...workingHours, hr].sort());
+    }
   };
 
-  const removeWorkingHour = (hr) => {
-    if (workingHours.length <= 1) return alert('يجب ترك ساعة عمل واحدة على الأقل');
-    setWorkingHours(workingHours.filter((h) => h !== hr));
+  const selectPresetHours = (preset) => {
+    if (preset === 'day') {
+      setWorkingHours(ALL_HALF_HOURS.filter((h) => h >= '09:00' && h <= '19:30'));
+    } else if (preset === 'evening') {
+      setWorkingHours(ALL_HALF_HOURS.filter((h) => h >= '14:00' && h <= '23:00'));
+    } else if (preset === 'all') {
+      setWorkingHours([...ALL_HALF_HOURS]);
+    }
   };
   const handleSaveSettings = async (e) => {
     e.preventDefault();
     if (paymentMethods.length === 0) return alert('يجب إضافة طريقة دفع واحدة على الأقل');
+    if (workingHours.length === 0) return alert('يجب اختيار وقت عمل واحد على الأقل');
     setSavingSettings(true);
 
     const firstPay = paymentMethods[0];
@@ -309,7 +322,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                   </button>
                 )}
 
-                               {b.status === 'confirmed' && (
+                {b.status === 'confirmed' && (
                   <a
                     href={getWhatsAppUrl(b)}
                     style={{ flex: 1, textAlign: 'center', textDecoration: 'none', background: '#25D366', color: '#fff', padding: 8, borderRadius: 6, fontWeight: 'bold', fontSize: 13 }}
@@ -317,7 +330,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                     مراسلة واتساب 💬
                   </a>
                 )}
-
 
                 {b.status !== 'rejected' && (
                   <button
@@ -409,22 +421,49 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
           </div>
 
           <div style={{ background: '#f8fafc', padding: 12, borderRadius: 10, marginBottom: 14, border: '1px solid #e2e8f0' }}>
-            <strong style={{ display: 'block', marginBottom: 8, fontSize: 14 }}>⏰ ساعات العمل المتاحة للحجز:</strong>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-              {workingHours.map((hr) => (
-                <span key={hr} style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '5px 10px', borderRadius: 20, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {hr}
-                  <button type="button" onClick={() => removeWorkingHour(hr)} style={{ background: 'none', border: 'none', color: '#dc2626', fontWeight: 'bold', cursor: 'pointer', padding: 0 }}>
-                    ×
-                  </button>
-                </span>
-              ))}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <strong style={{ fontSize: 14 }}>⏰ أوقات العمل (كل 30 دقيقة):</strong>
+              <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 'bold' }}>{workingHours.length} وقت متاح</span>
             </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <input type="time" style={{ ...input, margin: 0, flex: 2 }} value={newHour} onChange={(e) => setNewHour(e.target.value)} />
-              <button type="button" onClick={addWorkingHour} style={{ flex: 1, background: '#0f172a', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 'bold', fontSize: 13 }}>
-                + إضافة ساعة
+            <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 8px' }}>
+              اضغط على الساعة لتفعيلها (أخضر) أو إغلاقها (رمادي):
+            </p>
+
+            <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+              <button type="button" onClick={() => selectPresetHours('day')} style={{ flex: 1, padding: '6px 4px', fontSize: 11, borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>
+                نهاري (09-19:30)
               </button>
+              <button type="button" onClick={() => selectPresetHours('evening')} style={{ flex: 1, padding: '6px 4px', fontSize: 11, borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>
+                مسائي (14-23:00)
+              </button>
+              <button type="button" onClick={() => selectPresetHours('all')} style={{ flex: 1, padding: '6px 4px', fontSize: 11, borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>
+                تحديد الكل
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, direction: 'ltr' }}>
+              {ALL_HALF_HOURS.map((hr) => {
+                const isSelected = workingHours.includes(hr);
+                return (
+                  <button
+                    key={hr}
+                    type="button"
+                    onClick={() => toggleWorkingHour(hr)}
+                    style={{
+                      padding: '8px 4px',
+                      borderRadius: 8,
+                      border: isSelected ? '1px solid #16a34a' : '1px solid #cbd5e1',
+                      background: isSelected ? '#16a34a' : '#fff',
+                      color: isSelected ? '#fff' : '#64748b',
+                      fontWeight: 'bold',
+                      fontSize: 13,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {hr}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -454,3 +493,4 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     </div>
   );
 }
+
