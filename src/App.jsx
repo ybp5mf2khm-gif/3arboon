@@ -245,18 +245,20 @@ export default function App() {
             )}
           </div>
 
-          {!isUnlocked ? (
-            <div style={{ maxWidth: 380, margin: '24px auto', background: '#fff', padding: 26, borderRadius: 20, textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.06)' }}>
-              <div style={{ width: 52, height: 52, background: '#eff6ff', color: '#2563eb', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 12px' }}>🔐</div>
-              <h3 style={{ marginTop: 0, marginBottom: 6, fontWeight: 800, color: '#0f172a' }}>دخول أصحاب المشاريع</h3>
-              <p style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>أدخل البريد الإلكتروني أو رقم الهاتف والرمز السري</p>
-              <form onSubmit={handleProviderLogin}>
+              {!isUnlocked ? (
+            <div style={{ maxWidth: 400, margin: '20px auto', background: '#fff', borderRadius: 22, overflow: 'hidden', textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.06)' }}>
+              <div style={{ background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)', color: '#fff', padding: '24px 20px' }}>
+                <div style={{ fontSize: 28, marginBottom: 6 }}>🔐</div>
+                <h3 style={{ margin: '0 0 4px', fontWeight: 800, fontSize: 20 }}>دخول أصحاب المشاريع</h3>
+                <p style={{ fontSize: 13, color: '#dbeafe', margin: 0 }}>أدخل البريد الإلكتروني أو الهاتف والرمز السري</p>
+              </div>
+              <form onSubmit={handleProviderLogin} style={{ padding: 22 }}>
                 <input
                   type="text"
                   placeholder="البريد الإلكتروني أو رقم الهاتف"
                   value={loginIdentifier}
                   onChange={(e) => setLoginIdentifier(e.target.value)}
-                  style={{ width: '100%', padding: 13, fontSize: 14, textAlign: 'center', borderRadius: 12, border: '1px solid #cbd5e1', marginBottom: 12, boxSizing: 'border-box', fontFamily: 'inherit' }}
+                  style={{ width: '100%', padding: 13, fontSize: 14, textAlign: 'center', borderRadius: 12, border: '1px solid #cbd5e1', background: '#fff', color: '#0f172a', marginBottom: 12, boxSizing: 'border-box', fontFamily: 'inherit' }}
                   required
                 />
                 <input
@@ -264,7 +266,7 @@ export default function App() {
                   placeholder="الرمز السري (PIN)"
                   value={pinInput}
                   onChange={(e) => setPinInput(e.target.value)}
-                  style={{ width: '100%', padding: 13, fontSize: 18, textAlign: 'center', letterSpacing: 6, borderRadius: 12, border: '1px solid #cbd5e1', marginBottom: 16, boxSizing: 'border-box', fontFamily: 'inherit' }}
+                  style={{ width: '100%', padding: 13, fontSize: 18, textAlign: 'center', letterSpacing: 6, borderRadius: 12, border: '1px solid #cbd5e1', background: '#fff', color: '#0f172a', marginBottom: 16, boxSizing: 'border-box', fontFamily: 'inherit' }}
                   required
                 />
                 <button
@@ -277,6 +279,7 @@ export default function App() {
               </form>
             </div>
           ) : (
+
             <DashboardPage
               provider={provider}
               bookings={bookings}
