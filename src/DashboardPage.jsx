@@ -42,11 +42,12 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     return ph;
   };
 
-  const getWhatsAppUrl = (b, customMsg) => {
+    const getWhatsAppUrl = (b, customMsg) => {
     const ph = formatMoroccanPhone(b.client_phone);
-    const defaultMsg = 'مرحباً ' + b.client_name + '، تم تأكيد موعدك في *' + provider.business_name + '* يوم ' + b.booking_date + ' الساعة ' + b.booking_time + '.';
-    return 'https://whatsapp.com' + ph + '&text=' + encodeURIComponent(customMsg || defaultMsg);
+    const defaultMsg = 'مرحبا ' + b.client_name + '، تم تأكيد موعدك في ' + provider.business_name + ' يوم ' + b.booking_date + ' الساعة ' + b.booking_time;
+    return 'https://wa.me' + ph + '?text=' + encodeURIComponent(customMsg || defaultMsg);
   };
+
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(bookingLink);
@@ -308,16 +309,15 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                   </button>
                 )}
 
-                {b.status === 'confirmed' && (
+                               {b.status === 'confirmed' && (
                   <a
                     href={getWhatsAppUrl(b)}
-                    target="_blank"
-                    rel="noreferrer"
                     style={{ flex: 1, textAlign: 'center', textDecoration: 'none', background: '#25D366', color: '#fff', padding: 8, borderRadius: 6, fontWeight: 'bold', fontSize: 13 }}
                   >
                     مراسلة واتساب 💬
                   </a>
                 )}
+
 
                 {b.status !== 'rejected' && (
                   <button
