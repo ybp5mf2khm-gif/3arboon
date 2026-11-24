@@ -13,6 +13,20 @@ export default function BookingPage({ provider, services, onSuccess }) {
 
   const selectedSrv = services.find((s) => s.id === serviceId);
 
+  // تجهيز رابط واتساب صاحب المشروع تلقائياً
+  const rawPhone = String(provider.phone || '').replace(/\s+/g, '');
+  let providerWaPhone = rawPhone;
+  if (providerWaPhone.startsWith('0')) {
+    providerWaPhone = '212' + providerWaPhone.slice(1);
+  } else if (providerWaPhone && !providerWaPhone.startsWith('212')) {
+    providerWaPhone = '212' + providerWaPhone;
+  }
+
+  const defaultWaText = encodeURIComponent(
+    'مرحباً ' + provider.business_name + '، أود الاستفسار أو تأكيد حجزي عبر منصة عربون.'
+  );
+  const whatsappUrl = 'https://whatsapp.com' + providerWaPhone + '&text=' + defaultWaText;
+
   const copyRib = () => {
     navigator.clipboard.writeText(provider.rib);
     alert('تم نسخ رقم الحساب البنكي');
@@ -26,7 +40,7 @@ export default function BookingPage({ provider, services, onSuccess }) {
 
     try {
       const ext = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${ext}`;
+      const fileName = Date.now() + '.' + ext;
       const { error: upErr } = await supabase.storage.from('receipts').upload(fileName, file);
       if (upErr) throw upErr;
 
@@ -106,6 +120,30 @@ export default function BookingPage({ provider, services, onSuccess }) {
 
         {msg && <p style={{ textAlign: 'center', fontWeight: 'bold', marginTop: 10 }}>{msg}</p>}
       </form>
+
+      {/* زر مراسلة صاحب المشروع عبر واتساب */}
+      {providerWaPhone && (
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: 'block',
+              width: '100%',
+              background: '#25D366',
+              color: '#fff',
+              padding: 12,
+              borderRadius: 10,
+              fontWeight: 'bold',
+              textDecoration: 'none',
+              boxSizing: 'border-box'
+            }}
+          >
+            تواصل مع صاحب المشروع عبر واتساب 💬
+          </a>
+        </div>
+      )}
     </div>
   );
 }
