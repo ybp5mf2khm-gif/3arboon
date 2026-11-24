@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient';
 import BookingPage from './BookingPage.jsx';
 import DashboardPage from './DashboardPage.jsx';
 import RegisterPage from './RegisterPage.jsx';
+import ClientPage from './ClientPage.jsx';
 import AdminPage from './AdminPage.js';
 
 export default function App() {
