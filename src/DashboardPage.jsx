@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-
+import StatsTab from './StatsTab';
 const ALL_HALF_HOURS = [];
 for (let h = 8; h <= 23; h++) {
   const hh = String(h).padStart(2, '0');
@@ -368,6 +368,13 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
           >
             الخدمات ({services.length})
           </button>
+                    <button
+            onClick={() => setTab('stats')}
+            style={{ flex: 1, padding: '10px 6px', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 12, background: tab === 'stats' ? '#16a34a' : 'transparent', color: tab === 'stats' ? '#fff' : '#475569', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            الأرباح 📊
+          </button>
+
           <button
             onClick={() => setTab('settings')}
             style={{ flex: 1, padding: '10px 6px', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 12, background: tab === 'settings' ? '#2563eb' : 'transparent', color: tab === 'settings' ? '#fff' : '#475569', cursor: 'pointer', fontFamily: 'inherit' }}
@@ -375,6 +382,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             الإعدادات ⚙️
           </button>
         </div>
+        {tab === 'stats' && <StatsTab bookings={bookings} services={services} />}
 
         {tab === 'bookings' && (
           <div>
