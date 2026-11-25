@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import StatsTab from './StatsTab';
+import HolidaysSection from './HolidaysSection';
 import PremiumTab from './PremiumTab';
 import SubscriptionBanner from './SubscriptionBanner';
 const ALL_HALF_HOURS = [];
@@ -505,6 +506,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
         )}
 
         {tab === 'settings' && (
+                <HolidaysSection provider={provider} onRefresh={onRefresh} />
           <form onSubmit={handleSaveSettings}>
             <div style={sectionCard}>
               <strong style={{ display: 'block', marginBottom: 10, fontSize: 14, color: '#1e3a8a' }}>
