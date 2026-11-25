@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 
-export default function BookingPage({ provider, services, onSuccess }) {
+export default function BookingPage({ provider, services, reviews = [], onSuccess }) {
   const defaultHours = (Array.isArray(provider.working_hours) && provider.working_hours.length > 0)
     ? provider.working_hours
     : ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'];
@@ -23,6 +23,12 @@ export default function BookingPage({ provider, services, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [bookedInfo, setBookedInfo] = useState(null);
 
+  // حالات التقييمات الجديدة
+  const [revName, setRevName] = useState('');
+  const [revRating, setRevRating] = useState(5);
+  const [revComment, setRevComment] = useState('');
+  const [sendingRev, setSendingRev] = useState(false);
+
   const selectedSrv = services.find((s) => String(s.id) === String(serviceId));
   const currentStep = (date && time) ? 3 : serviceId ? 2 : 1;
 
@@ -32,6 +38,7 @@ export default function BookingPage({ provider, services, onSuccess }) {
     link.rel = 'stylesheet';
     document.head.appendChild(link);
   }, []);
+
   useEffect(() => {
     if (!date || !provider.id) {
       setBookedTimes([]);
@@ -79,6 +86,38 @@ export default function BookingPage({ provider, services, onSuccess }) {
   const copyAccount = (acc) => {
     navigator.clipboard.writeText(acc);
     alert('تم نسخ رقم الحساب: ' + acc);
+  };
+
+  const mapsUrl = provider.google_maps_url
+    ? provider.google_maps_url
+    : (provider.latitude && provider.longitude
+      ? 'https://google.com' + provider.latitude + ',' + provider.longitude
+      : null);
+
+  const avgRating = reviews.length > 0
+    ? (reviews.reduce((sum, r) => sum + Number(r.rating || 5), 0) / reviews.length).toFixed(1)
+    : null;
+
+  const handleAddReview = async (e) => {
+    e.preventDefault();
+    if (!revName.trim()) return alert('يرجى كتابة اسمك');
+    setSendingRev(true);
+
+    const { error } = await supabase.from('reviews').insert([{
+      provider_id: provider.id,
+      client_name: revName.trim(),
+      rating: Number(revRating),
+      comment: revComment.trim()
+    }]);
+
+    setSendingRev(false);
+    if (error) return alert('تعذر إرسال التقييم: ' + error.message);
+
+    alert('شكراً لك! تم إضافة تقييمك بنجاح ⭐');
+    setRevName('');
+    setRevComment('');
+    setRevRating(5);
+    if (onSuccess) onSuccess();
   };
 
   const handleSubmit = async (e) => {
@@ -197,19 +236,63 @@ export default function BookingPage({ provider, services, onSuccess }) {
     );
   }
 
+  const firstLetter = String(provider.business_name || 'ع').trim().charAt(0);
+
   return (
     <div style={{ ...pageFont, maxWidth: 460, margin: '12px auto', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.06)' }}>
-      {/* الترويسة الاحترافية */}
+      {/* الترويسة الاحترافية بالترتيب المطلوب */}
       <div style={{ background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)', color: '#fff', padding: '24px 20px', textAlign: 'center' }}>
         <span style={{ background: 'rgba(255,255,255,0.18)', padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
           عربون • 3arboon
         </span>
-        <h2 style={{ margin: '10px 0 4px', fontSize: 22, fontWeight: 800 }}>{provider.business_name}</h2>
-        <p style={{ margin: 0, color: '#dbeafe', fontSize: 13 }}>احجز موعدك وأرسل وصل العربون في خطوات بسيطة</p>
-      </div>
 
+        {/* 1. لوجو الشركة */}
+        <div style={{ margin: '14px auto 8px', display: 'flex', justifyContent: 'center' }}>
+          {provider.logo_url ? (
+            <img
+              src={provider.logo_url}
+              alt={provider.business_name}
+              style={{ width: 76, height: 76, borderRadius: '50%', objectFit: 'cover', border: '3px solid #fff', background: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}
+            />
+          ) : (
+            <div style={{ width: 76, height: 76, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', border: '3px solid rgba(255,255,255,0.6)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 800 }}>
+              {firstLetter}
+            </div>
+          )}
+        </div>
+
+        <h2 style={{ margin: '4px 0 8px', fontSize: 22, fontWeight: 800 }}>{provider.business_name}</h2>
+
+        {/* 2. رابط مباشر لخرائط جوجل تحت اللوجو والاسم */}
+        {mapsUrl && (
+          <div style={{ marginBottom: 10 }}>
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fff', color: '#dc2626', padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 800, textDecoration: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
+            >
+              📍 موقع المحل على خرائط جوجل ↗
+            </a>
+          </div>
+        )}
+
+        {/* 3. معلومات المحل */}
+        {provider.bio && (
+          <p style={{ margin: '8px auto 10px', maxWidth: 380, background: 'rgba(255,255,255,0.14)', padding: '8px 12px', borderRadius: 12, color: '#f8fafc', fontSize: 13, lineHeight: 1.6 }}>
+            {provider.bio}
+          </p>
+        )}
+
+        {/* 4. التقييم تحت المعلومات */}
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.2)', padding: '4px 12px', borderRadius: 16, fontSize: 12, fontWeight: 700, color: '#fde047' }}>
+          <span>⭐ {avgRating ? avgRating : 'جديد'}</span>
+          <span style={{ color: '#e2e8f0', fontWeight: 600 }}>
+            ({reviews.length > 0 ? reviews.length + ' تقييم' : 'كن أول من يقيّم'})
+          </span>
+        </div>
+      </div>
       <div style={{ padding: 20 }}>
-        {/* شريط الخطوات المرقم (1 - 2 - 3) */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22, background: '#f8fafc', padding: '12px 10px', borderRadius: 14, border: '1px solid #e2e8f0' }}>
           {[
             { num: 1, label: 'الخدمة' },
@@ -236,7 +319,6 @@ export default function BookingPage({ provider, services, onSuccess }) {
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* بطاقات الخدمات */}
           <label style={{ display: 'block', fontWeight: 700, marginBottom: 8, fontSize: 14 }}>1. اختر الخدمة</label>
           <div style={{ display: 'grid', gap: 10, marginBottom: 18 }}>
             {services.map((s) => {
@@ -259,7 +341,7 @@ export default function BookingPage({ provider, services, onSuccess }) {
                 >
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{s.title}</div>
-                    {s.price && <div style={{ fontSize: 12, color: '#64748b' }}>الثمن الإجمالي: {s.price} درهم</div>}
+                    {(s.total_price || s.price) && <div style={{ fontSize: 12, color: '#64748b' }}>الثمن الإجمالي: {s.total_price || s.price} درهم</div>}
                   </div>
                   <div style={{ background: isSelected ? '#2563eb' : '#f1f5f9', color: isSelected ? '#fff' : '#334155', padding: '5px 10px', borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
                     {s.deposit_amount} درهم عربون
@@ -268,6 +350,7 @@ export default function BookingPage({ provider, services, onSuccess }) {
               );
             })}
           </div>
+
           <label style={{ display: 'block', fontWeight: 700, fontSize: 14 }}>2. التاريخ</label>
           <input
             type="date"
@@ -316,7 +399,6 @@ export default function BookingPage({ provider, services, onSuccess }) {
               })}
             </div>
           )}
-
           {selectedSrv && (
             <div style={{ background: '#f0fdf4', padding: 14, borderRadius: 12, marginBottom: 16, border: '1px dashed #16a34a' }}>
               <div style={{ marginBottom: 8, fontSize: 14 }}>
@@ -379,6 +461,68 @@ export default function BookingPage({ provider, services, onSuccess }) {
             </a>
           </div>
         )}
+
+        {/* قسم آراء وتقييمات الزبائن */}
+        <div style={{ marginTop: 24, paddingTop: 18, borderTop: '2px dashed #e2e8f0' }}>
+          <h4 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 800, color: '#0f172a' }}>
+            ⭐ تقييمات الزبائن ({reviews.length})
+          </h4>
+
+          <form onSubmit={handleAddReview} style={{ background: '#f8fafc', padding: 12, borderRadius: 12, border: '1px solid #e2e8f0', marginBottom: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a8a', marginBottom: 8 }}>أضف تقييمك للمحل:</div>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+              <input
+                type="text"
+                placeholder="اسمك"
+                value={revName}
+                onChange={(e) => setRevName(e.target.value)}
+                style={{ ...inputStyle, margin: 0, flex: 2, padding: '8px 10px', fontSize: 13 }}
+                required
+              />
+              <select
+                value={revRating}
+                onChange={(e) => setRevRating(e.target.value)}
+                style={{ ...inputStyle, margin: 0, flex: 1, padding: '8px 6px', fontSize: 13, fontWeight: 700 }}
+              >
+                <option value="5">5 ⭐ ممتاز</option>
+                <option value="4">4 ⭐ جيد جداً</option>
+                <option value="3">3 ⭐ جيد</option>
+                <option value="2">2 ⭐ مقبول</option>
+                <option value="1">1 ⭐ ضعيف</option>
+              </select>
+            </div>
+            <input
+              type="text"
+              placeholder="اكتب تعليقك (اختياري)..."
+              value={revComment}
+              onChange={(e) => setRevComment(e.target.value)}
+              style={{ ...inputStyle, margin: '0 0 8px', padding: '8px 10px', fontSize: 13 }}
+            />
+            <button
+              type="submit"
+              disabled={sendingRev}
+              style={{ width: '100%', background: '#0f172a', color: '#fff', border: 'none', padding: 9, borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              {sendingRev ? 'جاري النشر...' : 'إرسال التقييم ⭐'}
+            </button>
+          </form>
+
+          {reviews.length === 0 ? (
+            <p style={{ textAlign: 'center', fontSize: 12, color: '#64748b' }}>لا توجد تقييمات بعد. كن أول من يشارك رأيه!</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {reviews.map((r) => (
+                <div key={r.id} style={{ background: '#f8fafc', padding: 10, borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <strong style={{ color: '#0f172a' }}>{r.client_name}</strong>
+                    <span style={{ color: '#d97706', fontWeight: 800 }}>{'⭐'.repeat(Number(r.rating || 5))}</span>
+                  </div>
+                  {r.comment && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#475569' }}>{r.comment}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
