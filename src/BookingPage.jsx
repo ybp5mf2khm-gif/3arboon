@@ -65,6 +65,7 @@ export default function BookingPage({ provider, services, reviews = [], onSucces
 
     fetchBookedSlots();
   }, [date, provider.id]);
+
   const rawPhone = String(provider.phone || '').replace(/\D/g, '');
   let providerWaPhone = rawPhone;
   if (providerWaPhone.startsWith('0')) {
@@ -93,7 +94,6 @@ export default function BookingPage({ provider, services, reviews = [], onSucces
     : (provider.latitude && provider.longitude
       ? mapsBase + provider.latitude + ',' + provider.longitude
       : null);
-
   const avgRating = reviews.length > 0
     ? (reviews.reduce((sum, r) => sum + Number(r.rating || 5), 0) / reviews.length).toFixed(1)
     : null;
@@ -302,7 +302,6 @@ export default function BookingPage({ provider, services, reviews = [], onSucces
           </span>
         </div>
       </div>
-
       <div style={{ padding: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22, background: '#f8fafc', padding: '12px 10px', borderRadius: 14, border: '1px solid #e2e8f0' }}>
           {[
@@ -361,6 +360,7 @@ export default function BookingPage({ provider, services, reviews = [], onSucces
               );
             })}
           </div>
+
           <label style={{ display: 'block', fontWeight: 700, fontSize: 14 }}>2. التاريخ</label>
           <input
             type="date"
@@ -417,7 +417,7 @@ export default function BookingPage({ provider, services, reviews = [], onSucces
             </div>
           )}
 
-          {selectedSrv && (
+          {selectedSrv && !isSelectedDateClosed && time && (
             <div style={{ background: '#f0fdf4', padding: 14, borderRadius: 12, marginBottom: 16, border: '1px dashed #16a34a' }}>
               <div style={{ marginBottom: 8, fontSize: 14 }}>
                 العربون المطلوب: <strong style={{ color: '#15803d' }}>{selectedSrv.deposit_amount} درهم</strong>
@@ -441,7 +441,6 @@ export default function BookingPage({ provider, services, reviews = [], onSucces
               ))}
             </div>
           )}
-
           <label style={{ fontWeight: 700, fontSize: 14 }}>3. الاسم الكامل</label>
           <input type="text" style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} required />
 
