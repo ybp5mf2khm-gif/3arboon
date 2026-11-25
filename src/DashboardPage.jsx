@@ -4,6 +4,7 @@ import StatsTab from './StatsTab';
 import HolidaysSection from './HolidaysSection';
 import PremiumTab from './PremiumTab';
 import SubscriptionBanner from './SubscriptionBanner';
+
 const ALL_HALF_HOURS = [];
 for (let h = 8; h <= 23; h++) {
   const hh = String(h).padStart(2, '0');
@@ -87,10 +88,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
         setLocating(false);
         const lat = Number(position.coords.latitude).toFixed(6);
         const lng = Number(position.coords.longitude).toFixed(6);
-        const link = 'https://maps.google.com/?q=' + lat + ',' + lng;
-
-
-
+        const link = 'https://google.com' + lat + ',' + lng;
         setGoogleMapsUrl(link);
         alert('تم إنشاء رابط خرائط جوجل لموقعك الحالي بنجاح 📍');
       },
@@ -101,6 +99,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
       { enableHighAccuracy: true, timeout: 10000 }
     );
   };
+
   const bookingLink = window.location.origin + '/?p=' + provider.slug;
 
   const formatMoroccanPhone = (rawPhone) => {
@@ -135,7 +134,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     }
     window.location.assign('https://wa.me?text=' + encodeURIComponent(textMsg));
   };
-
   const upcomingReminders = bookings.filter((b) => {
     if (b.status !== 'confirmed' || b.reminder_sent) return false;
     if (!b.booking_date || !b.booking_time) return false;
@@ -309,7 +307,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
       </div>
 
       <div style={{ padding: 18 }}>
-                <SubscriptionBanner provider={provider} />
+        <SubscriptionBanner provider={provider} />
         {upcomingReminders.length > 0 && (
           <div style={{ background: '#fff7ed', border: '1px solid #fdba74', borderRadius: 14, padding: 14, marginBottom: 16 }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: '#c2410c', marginBottom: 8 }}>
@@ -358,7 +356,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             </button>
           </div>
         </div>
-
         <div style={{ display: 'flex', gap: 6, marginBottom: 18, background: '#f1f5f9', padding: 5, borderRadius: 14 }}>
           <button
             onClick={() => setTab('bookings')}
@@ -372,20 +369,18 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
           >
             الخدمات ({services.length})
           </button>
-                    <button
+          <button
             onClick={() => setTab('stats')}
             style={{ flex: 1, padding: '10px 6px', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 12, background: tab === 'stats' ? '#16a34a' : 'transparent', color: tab === 'stats' ? '#fff' : '#475569', cursor: 'pointer', fontFamily: 'inherit' }}
           >
             الأرباح 📊
           </button>
-                    <button
+          <button
             onClick={() => setTab('premium')}
             style={{ flex: 1, padding: '10px 4px', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 11, background: tab === 'premium' ? '#d97706' : 'transparent', color: tab === 'premium' ? '#fff' : '#b45309', cursor: 'pointer', fontFamily: 'inherit' }}
           >
             VIP 👑
           </button>
-
-
           <button
             onClick={() => setTab('settings')}
             style={{ flex: 1, padding: '10px 6px', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 12, background: tab === 'settings' ? '#2563eb' : 'transparent', color: tab === 'settings' ? '#fff' : '#475569', cursor: 'pointer', fontFamily: 'inherit' }}
@@ -393,7 +388,8 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             الإعدادات ⚙️
           </button>
         </div>
-         {tab === 'premium' && <PremiumTab provider={provider} bookings={bookings} services={services} />}
+
+        {tab === 'premium' && <PremiumTab provider={provider} bookings={bookings} services={services} />}
         {tab === 'stats' && <StatsTab bookings={bookings} services={services} />}
 
         {tab === 'bookings' && (
@@ -506,162 +502,163 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
         )}
 
         {tab === 'settings' && (
-                <HolidaysSection provider={provider} onRefresh={onRefresh} />
-          <form onSubmit={handleSaveSettings}>
-            <div style={sectionCard}>
-              <strong style={{ display: 'block', marginBottom: 10, fontSize: 14, color: '#1e3a8a' }}>
-                🖼️ هوية المشروع والموقع الجغرافي:
-              </strong>
+          <>
+            <HolidaysSection provider={provider} onRefresh={onRefresh} />
+            <form onSubmit={handleSaveSettings}>
+              <div style={sectionCard}>
+                <strong style={{ display: 'block', marginBottom: 10, fontSize: 14, color: '#1e3a8a' }}>
+                  🖼️ هوية المشروع والموقع الجغرافي:
+                </strong>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, background: '#fff', padding: 10, borderRadius: 12, border: '1px solid #cbd5e1' }}>
-                {logoUrl ? (
-                  <img src={logoUrl} alt="Logo" style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid #2563eb' }} />
-                ) : (
-                  <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
-                    🏪
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, background: '#fff', padding: 10, borderRadius: 12, border: '1px solid #cbd5e1' }}>
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="Logo" style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid #2563eb' }} />
+                  ) : (
+                    <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                      🏪
+                    </div>
+                  )}
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+                      {uploadingLogo ? 'جاري رفع اللوجو...' : 'اختر صورة لوجو المشروع:'}
+                    </label>
+                    <input type="file" accept="image/*" onChange={handleLogoUpload} disabled={uploadingLogo} style={{ fontSize: 12, width: '100%' }} />
                   </div>
-                )}
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
-                    {uploadingLogo ? 'جاري رفع اللوجو...' : 'اختر صورة لوجو المشروع:'}
-                  </label>
-                  <input type="file" accept="image/*" onChange={handleLogoUpload} disabled={uploadingLogo} style={{ fontSize: 12, width: '100%' }} />
                 </div>
-              </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <label style={{ fontSize: 13, fontWeight: 700 }}>📍 رابط موقعك على خرائط جوجل:</label>
-                <button
-                  type="button"
-                  onClick={handleGenerateGpsLink}
-                  disabled={locating}
-                  style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
-                >
-                  {locating ? 'جاري التحديد...' : 'توليد عبر GPS 🎯'}
-                </button>
-              </div>
-                          <input
-                type="text"
-                placeholder="https://google.com..."
-                style={{ ...inputStyle, direction: 'ltr', textAlign: 'left' }}
-                value={googleMapsUrl}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  const match = val.match(/https?:\/\/[^\s]+/);
-                  setGoogleMapsUrl(match ? match.at(0) : val);
-                }}
-              />
-
-
-              <label style={{ fontSize: 13, fontWeight: 700 }}>ℹ️ معلومات عن المحل (العنوان والوصف):</label>
-              <textarea
-                rows="2"
-                placeholder="مثال: صالون تجميل وحلاقة للنساء - حي جليز مراكش قرب مقهى..."
-                style={{ ...inputStyle, resize: 'vertical' }}
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-              />
-            </div>
-
-            <div style={sectionCard}>
-              <strong style={{ display: 'block', marginBottom: 10, fontSize: 14, color: '#1e3a8a' }}>🏦 البنوك وطرق الدفع المتاحة:</strong>
-              {paymentMethods.map((pm, idx) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '9px 12px', borderRadius: 10, border: '1px solid #cbd5e1', marginBottom: 8 }}>
-                  <div style={{ fontSize: 13 }}>
-                    <strong>{pm.bank}</strong>: <span style={{ direction: 'ltr', display: 'inline-block' }}>{pm.account}</span>
-                  </div>
-                  <button type="button" onClick={() => removePaymentMethod(idx)} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 8, padding: '5px 10px', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                    حذف
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <label style={{ fontSize: 13, fontWeight: 700 }}>📍 رابط موقعك على خرائط جوجل:</label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateGpsLink}
+                    disabled={locating}
+                    style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    {locating ? 'جاري التحديد...' : 'توليد عبر GPS 🎯'}
                   </button>
                 </div>
-              ))}
+                <input
+                  type="text"
+                  placeholder="https://google.com..."
+                  style={{ ...inputStyle, direction: 'ltr', textAlign: 'left' }}
+                  value={googleMapsUrl}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const match = val.match(/https?:\/\/[^\s]+/);
+                    setGoogleMapsUrl(match ? match.at(0) : val);
+                  }}
+                />
 
-              <select style={inputStyle} value={newBank} onChange={(e) => setNewBank(e.target.value)}>
-                <option value="CIH Bank">CIH Bank</option>
-                <option value="التجاري وفا بنك">التجاري وفا بنك</option>
-                <option value="البنك الشعبي">البنك الشعبي</option>
-                <option value="Bank of Africa (BMCE)">Bank of Africa (BMCE)</option>
-                <option value="البريد بنك">البريد بنك</option>
-                <option value="CashPlus / Wafacash">كاش بلوس / وفاكاش</option>
-                <option value="Orange Money / inwi money">أورنج موني / إنوي موني</option>
-              </select>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <input type="text" placeholder="رقم RIB أو رقم الهاتف" style={{ ...inputStyle, margin: 0, flex: 2 }} value={newAccount} onChange={(e) => setNewAccount(e.target.value)} />
-                <button type="button" onClick={addPaymentMethod} style={{ flex: 1, background: '#1e293b', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  + إضافة
-                </button>
-              </div>
-            </div>
-            <div style={sectionCard}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <strong style={{ fontSize: 14, color: '#1e3a8a' }}>⏰ أوقات العمل (كل 30 دقيقة):</strong>
-                <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 800 }}>{workingHours.length} وقت متاح</span>
-              </div>
-              <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 10px' }}>
-                اضغط على الساعة لتفعيلها (أخضر) أو إغلاقها (أبيض):
-              </p>
-
-              <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-                <button type="button" onClick={() => selectPresetHours('day')} style={{ flex: 1, padding: '7px 4px', fontSize: 11, borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>
-                  نهاري (09-19:30)
-                </button>
-                <button type="button" onClick={() => selectPresetHours('evening')} style={{ flex: 1, padding: '7px 4px', fontSize: 11, borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>
-                  مسائي (14-23:00)
-                </button>
-                <button type="button" onClick={() => selectPresetHours('all')} style={{ flex: 1, padding: '7px 4px', fontSize: 11, borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>
-                  تحديد الكل
-                </button>
+                <label style={{ fontSize: 13, fontWeight: 700 }}>ℹ️ معلومات عن المحل (العنوان والوصف):</label>
+                <textarea
+                  rows="2"
+                  placeholder="مثال: صالون تجميل وحلاقة للنساء - حي جليز مراكش قرب مقهى..."
+                  style={{ ...inputStyle, resize: 'vertical' }}
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, direction: 'ltr' }}>
-                {ALL_HALF_HOURS.map((hr) => {
-                  const isSelected = workingHours.includes(hr);
-                  return (
-                    <button
-                      key={hr}
-                      type="button"
-                      onClick={() => toggleWorkingHour(hr)}
-                      style={{
-                        padding: '8px 4px',
-                        borderRadius: 8,
-                        border: isSelected ? '1px solid #16a34a' : '1px solid #cbd5e1',
-                        background: isSelected ? '#16a34a' : '#fff',
-                        color: isSelected ? '#fff' : '#64748b',
-                        fontWeight: 700,
-                        fontSize: 13,
-                        cursor: 'pointer',
-                        fontFamily: 'inherit'
-                      }}
-                    >
-                      {hr}
+              <div style={sectionCard}>
+                <strong style={{ display: 'block', marginBottom: 10, fontSize: 14, color: '#1e3a8a' }}>🏦 البنوك وطرق الدفع المتاحة:</strong>
+                {paymentMethods.map((pm, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '9px 12px', borderRadius: 10, border: '1px solid #cbd5e1', marginBottom: 8 }}>
+                    <div style={{ fontSize: 13 }}>
+                      <strong>{pm.bank}</strong>: <span style={{ direction: 'ltr', display: 'inline-block' }}>{pm.account}</span>
+                    </div>
+                    <button type="button" onClick={() => removePaymentMethod(idx)} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 8, padding: '5px 10px', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      حذف
                     </button>
-                  );
-                })}
+                  </div>
+                ))}
+
+                <select style={inputStyle} value={newBank} onChange={(e) => setNewBank(e.target.value)}>
+                  <option value="CIH Bank">CIH Bank</option>
+                  <option value="التجاري وفا بنك">التجاري وفا بنك</option>
+                  <option value="البنك الشعبي">البنك الشعبي</option>
+                  <option value="Bank of Africa (BMCE)">Bank of Africa (BMCE)</option>
+                  <option value="البريد بنك">البريد بنك</option>
+                  <option value="CashPlus / Wafacash">كاش بلوس / وفاكاش</option>
+                  <option value="Orange Money / inwi money">أورنج موني / إنوي موني</option>
+                </select>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input type="text" placeholder="رقم RIB أو رقم الهاتف" style={{ ...inputStyle, margin: 0, flex: 2 }} value={newAccount} onChange={(e) => setNewAccount(e.target.value)} />
+                  <button type="button" onClick={addPaymentMethod} style={{ flex: 1, background: '#1e293b', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    + إضافة
+                  </button>
+                </div>
               </div>
-            </div>
+              <div style={sectionCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <strong style={{ fontSize: 14, color: '#1e3a8a' }}>⏰ أوقات العمل (كل 30 دقيقة):</strong>
+                  <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 800 }}>{workingHours.length} وقت متاح</span>
+                </div>
+                <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 10px' }}>
+                  اضغط على الساعة لتفعيلها (أخضر) أو إغلاقها (أبيض):
+                </p>
 
-            <div style={sectionCard}>
-              <strong style={{ display: 'block', marginBottom: 10, fontSize: 14, color: '#1e3a8a' }}>👤 تعديل بيانات الحساب:</strong>
-              <label style={{ fontSize: 13, fontWeight: 700 }}>اسم المشروع / الصالون</label>
-              <input type="text" style={inputStyle} value={bizName} onChange={(e) => setBizName(e.target.value)} required />
+                <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+                  <button type="button" onClick={() => selectPresetHours('day')} style={{ flex: 1, padding: '7px 4px', fontSize: 11, borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>
+                    نهاري (09-19:30)
+                  </button>
+                  <button type="button" onClick={() => selectPresetHours('evening')} style={{ flex: 1, padding: '7px 4px', fontSize: 11, borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>
+                    مسائي (14-23:00)
+                  </button>
+                  <button type="button" onClick={() => selectPresetHours('all')} style={{ flex: 1, padding: '7px 4px', fontSize: 11, borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>
+                    تحديد الكل
+                  </button>
+                </div>
 
-              <label style={{ fontSize: 13, fontWeight: 700 }}>اسم صاحب المشروع</label>
-              <input type="text" style={inputStyle} value={ownerName} onChange={(e) => setOwnerName(e.target.value)} required />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, direction: 'ltr' }}>
+                  {ALL_HALF_HOURS.map((hr) => {
+                    const isSelected = workingHours.includes(hr);
+                    return (
+                      <button
+                        key={hr}
+                        type="button"
+                        onClick={() => toggleWorkingHour(hr)}
+                        style={{
+                          padding: '8px 4px',
+                          borderRadius: 8,
+                          border: isSelected ? '1px solid #16a34a' : '1px solid #cbd5e1',
+                          background: isSelected ? '#16a34a' : '#fff',
+                          color: isSelected ? '#fff' : '#64748b',
+                          fontWeight: 700,
+                          fontSize: 13,
+                          cursor: 'pointer',
+                          fontFamily: 'inherit'
+                        }}
+                      >
+                        {hr}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-              <label style={{ fontSize: 13, fontWeight: 700 }}>رقم الهاتف (واتساب)</label>
-              <input type="tel" style={inputStyle} value={phone} onChange={(e) => setPhone(e.target.value)} required />
+              <div style={sectionCard}>
+                <strong style={{ display: 'block', marginBottom: 10, fontSize: 14, color: '#1e3a8a' }}>👤 تعديل بيانات الحساب:</strong>
+                <label style={{ fontSize: 13, fontWeight: 700 }}>اسم المشروع / الصالون</label>
+                <input type="text" style={inputStyle} value={bizName} onChange={(e) => setBizName(e.target.value)} required />
 
-              <label style={{ fontSize: 13, fontWeight: 700 }}>البريد الإلكتروني</label>
-              <input type="email" style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} />
+                <label style={{ fontSize: 13, fontWeight: 700 }}>اسم صاحب المشروع</label>
+                <input type="text" style={inputStyle} value={ownerName} onChange={(e) => setOwnerName(e.target.value)} required />
 
-              <label style={{ fontSize: 13, fontWeight: 700 }}>الرمز السري (PIN)</label>
-              <input type="text" maxLength="6" style={{ ...inputStyle, textAlign: 'center', letterSpacing: 4, fontWeight: 700 }} value={pinCode} onChange={(e) => setPinCode(e.target.value)} required />
-            </div>
+                <label style={{ fontSize: 13, fontWeight: 700 }}>رقم الهاتف (واتساب)</label>
+                <input type="tel" style={inputStyle} value={phone} onChange={(e) => setPhone(e.target.value)} required />
 
-            <button type="submit" disabled={savingSettings} style={{ width: '100%', background: '#16a34a', color: '#fff', border: 'none', padding: 14, borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(22,163,74,0.25)' }}>
-              {savingSettings ? 'جاري الحفظ...' : 'حفظ جميع الإعدادات ✅'}
-            </button>
-          </form>
+                <label style={{ fontSize: 13, fontWeight: 700 }}>البريد الإلكتروني</label>
+                <input type="email" style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} />
+
+                <label style={{ fontSize: 13, fontWeight: 700 }}>الرمز السري (PIN)</label>
+                <input type="text" maxLength="6" style={{ ...inputStyle, textAlign: 'center', letterSpacing: 4, fontWeight: 700 }} value={pinCode} onChange={(e) => setPinCode(e.target.value)} required />
+              </div>
+
+              <button type="submit" disabled={savingSettings} style={{ width: '100%', background: '#16a34a', color: '#fff', border: 'none', padding: 14, borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(22,163,74,0.25)' }}>
+                {savingSettings ? 'جاري الحفظ...' : 'حفظ جميع الإعدادات ✅'}
+              </button>
+            </form>
+          </>
         )}
       </div>
     </div>
