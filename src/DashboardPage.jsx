@@ -84,7 +84,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
         setLocating(false);
         const lat = Number(position.coords.latitude).toFixed(6);
         const lng = Number(position.coords.longitude).toFixed(6);
-        const link = 'https://' + 'maps.google' + '.com/?q=' + lat + ',' + lng;
+        const link = 'https://' + 'maps.google/?q=' + '.com/?q=' + lat + ',' + lng;
 
 
         setGoogleMapsUrl(link);
