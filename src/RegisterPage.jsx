@@ -7,6 +7,14 @@ export default function RegisterPage({ onCancel }) {
   const [phone, setPhone] = useState('');
   const [bizName, setBizName] = useState('');
   const [slug, setSlug] = useState('');
+
+  // الحقول الجديدة: اللوجو، رابط الخريطة، والمعلومات
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState('');
+  const [googleMapsUrl, setGoogleMapsUrl] = useState('');
+  const [locating, setLocating] = useState(false);
+  const [bio, setBio] = useState('');
+
   const [bankName, setBankName] = useState('CIH Bank');
   const [rib, setRib] = useState('');
   const [pin, setPin] = useState('');
@@ -15,7 +23,6 @@ export default function RegisterPage({ onCancel }) {
   const [deposit, setDeposit] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // تحميل خط Cairo العربي العصري
   useEffect(() => {
     const link = document.createElement('link');
     link.href = 'https://googleapis.com';
@@ -24,6 +31,36 @@ export default function RegisterPage({ onCancel }) {
   }, []);
 
   const cleanSlugPreview = slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+
+  const handleSelectLogo = (e) => {
+    const file = e.target.files.item(0);
+    if (!file) return;
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+  };
+
+  const handleGenerateGpsLink = () => {
+    if (!navigator.geolocation) {
+      return alert('متصفحك لا يدعم تحديد الموقع التلقائي');
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocating(false);
+        const lat = Number(position.coords.latitude).toFixed(6);
+        const lng = Number(position.coords.longitude).toFixed(6);
+        const domain = ['www', 'google', 'com'].join('.');
+        const base = 'https://' + domain + '/maps/search/?api=1&query=';
+        setGoogleMapsUrl(base + lat + ',' + lng);
+        alert('تم تحديد موقعك وإنشاء الرابط بنجاح 📍');
+      },
+      () => {
+        setLocating(false);
+        alert('يرجى تفعيل GPS في الهاتف والسماح للمتصفح بالوصول للموقع.');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -38,6 +75,17 @@ export default function RegisterPage({ onCancel }) {
     }
 
     try {
+      let uploadedLogoUrl = null;
+      if (logoFile) {
+        const ext = logoFile.name.split('.').pop();
+        const fileName = 'logos/reg_' + Date.now() + '.' + ext;
+        const { error: upErr } = await supabase.storage.from('receipts').upload(fileName, logoFile);
+        if (!upErr) {
+          const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(fileName);
+          uploadedLogoUrl = urlData.publicUrl;
+        }
+      }
+
       const { data: prov, error: pErr } = await supabase
         .from('providers')
         .insert([{
@@ -46,6 +94,9 @@ export default function RegisterPage({ onCancel }) {
           phone: phone.trim(),
           business_name: bizName.trim(),
           slug: cleanSlug,
+          logo_url: uploadedLogoUrl,
+          google_maps_url: googleMapsUrl.trim() || null,
+          bio: bio.trim() || null,
           bank_name: bankName,
           rib: rib.trim(),
           pin_code: pin.trim(),
@@ -100,7 +151,6 @@ export default function RegisterPage({ onCancel }) {
 
   return (
     <div style={{ ...pageFont, maxWidth: 460, margin: '12px auto', background: '#fff', borderRadius: 22, overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.06)' }}>
-      {/* الترويسة الاحترافية */}
       <div style={{ background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)', color: '#fff', padding: '24px 20px', textAlign: 'center' }}>
         <span style={{ background: 'rgba(255,255,255,0.18)', padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
           عربون • 3arboon
@@ -133,14 +183,65 @@ export default function RegisterPage({ onCancel }) {
             <input type="text" placeholder="مثال: amina-salon" style={{ ...inputStyle, direction: 'ltr', textAlign: 'left', marginBottom: 6 }} value={slug} onChange={(e) => setSlug(e.target.value)} required />
             {cleanSlugPreview && (
               <div style={{ fontSize: 11, color: '#2563eb', background: '#eff6ff', padding: '6px 10px', borderRadius: 8, direction: 'ltr', textAlign: 'left' }}>
-                3arboon-rouge.vercel.app/?p=<strong>{cleanSlugPreview}</strong>
+                3arboon/?p=<strong>{cleanSlugPreview}</strong>
               </div>
             )}
           </div>
-          {/* القسم 2: الحساب البنكي والرمز السري */}
+
+          {/* القسم 2: اللوجو، الموقع، والمعلومات */}
           <div style={sectionCard}>
             <div style={{ fontWeight: 800, fontSize: 15, color: '#1e3a8a', marginBottom: 12 }}>
-              2. الحساب البنكي والرمز السري
+              2. هوية المحل والموقع (اختياري)
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, background: '#fff', padding: 10, borderRadius: 12, border: '1px solid #cbd5e1' }}>
+              {logoPreview ? (
+                <img src={logoPreview} alt="Logo" style={{ width: 54, height: 54, borderRadius: '50%', objectFit: 'cover', border: '2px solid #2563eb' }} />
+              ) : (
+                <div style={{ width: 54, height: 54, borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                  🏪
+                </div>
+              )}
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+                  صورة لوجو المشروع:
+                </label>
+                <input type="file" accept="image/*" onChange={handleSelectLogo} style={{ fontSize: 12, width: '100%' }} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <label style={{ fontWeight: 700, fontSize: 13 }}>📍 رابط الموقع على الخريطة:</label>
+              <button
+                type="button"
+                onClick={handleGenerateGpsLink}
+                disabled={locating}
+                style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                {locating ? 'جاري التحديد...' : 'توليد عبر GPS 🎯'}
+              </button>
+            </div>
+            <input
+              type="text"
+              placeholder="اضغط الزر الأخضر أو الصق رابط الخريطة"
+              style={{ ...inputStyle, direction: 'ltr', textAlign: 'left' }}
+              value={googleMapsUrl}
+              onChange={(e) => setGoogleMapsUrl(e.target.value)}
+            />
+
+            <label style={{ fontWeight: 700, fontSize: 13 }}>ℹ️ معلومات عن المحل (العنوان والتخصص):</label>
+            <textarea
+              rows="2"
+              placeholder="مثال: صالون حلاقة وتجميل - حي جليز مراكش..."
+              style={{ ...inputStyle, resize: 'vertical' }}
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+            />
+          </div>
+          {/* القسم 3: الحساب البنكي والرمز السري */}
+          <div style={sectionCard}>
+            <div style={{ fontWeight: 800, fontSize: 15, color: '#1e3a8a', marginBottom: 12 }}>
+              3. الحساب البنكي والرمز السري
             </div>
 
             <label style={{ fontWeight: 700, fontSize: 13 }}>اسم البنك</label>
@@ -158,10 +259,10 @@ export default function RegisterPage({ onCancel }) {
             <input type="text" maxLength="6" placeholder="مثال: 2026" style={{ ...inputStyle, textAlign: 'center', letterSpacing: 4, fontWeight: 700 }} value={pin} onChange={(e) => setPin(e.target.value)} required />
           </div>
 
-          {/* القسم 3: الخدمة الأولى */}
+          {/* القسم 4: الخدمة الأولى */}
           <div style={sectionCard}>
             <div style={{ fontWeight: 800, fontSize: 15, color: '#1e3a8a', marginBottom: 12 }}>
-              3. أضف خدمتك الأولى
+              4. أضف خدمتك الأولى
             </div>
 
             <label style={{ fontWeight: 700, fontSize: 13 }}>اسم الخدمة *</label>
