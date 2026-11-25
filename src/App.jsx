@@ -117,12 +117,12 @@ export default function App() {
     return { avg: (sum / provRevs.length).toFixed(1), count: provRevs.length };
   };
 
-  const getMapsLink = (p) => {
- if (p.latitude && p.longitude) return ['https:', '', '://google.com', 'maps', 'search', '?api=1&query='].join('/') + p.latitude + ',' + p.longitude;
-
-    if (p.latitude && p.longitude) return 'https://google.com' + p.latitude + ',' + p.longitude;
+    const getMapsLink = (p) => {
+    if (p.google_maps_url) return p.google_maps_url;
+    if (p.latitude && p.longitude) return ['https:', '', '://google.com', 'maps', 'search', '?api=1&query='].join('/') + p.latitude + ',' + p.longitude;
     return null;
   };
+
   const appFont = { fontFamily: "'Cairo', sans-serif", direction: 'rtl' };
 
   if (loading) {
