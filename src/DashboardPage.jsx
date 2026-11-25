@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import StatsTab from './StatsTab';
+import PremiumTab from './PremiumTab';
 import SubscriptionBanner from './SubscriptionBanner';
 const ALL_HALF_HOURS = [];
 for (let h = 8; h <= 23; h++) {
@@ -376,6 +377,13 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
           >
             الأرباح 📊
           </button>
+                    <button
+            onClick={() => setTab('premium')}
+            style={{ flex: 1, padding: '10px 4px', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 11, background: tab === 'premium' ? '#d97706' : 'transparent', color: tab === 'premium' ? '#fff' : '#b45309', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            VIP 👑
+          </button>
+
 
           <button
             onClick={() => setTab('settings')}
@@ -384,6 +392,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             الإعدادات ⚙️
           </button>
         </div>
+         {tab === 'premium' && <PremiumTab provider={provider} bookings={bookings} services={services} />}
         {tab === 'stats' && <StatsTab bookings={bookings} services={services} />}
 
         {tab === 'bookings' && (
