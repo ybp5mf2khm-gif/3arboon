@@ -56,30 +56,30 @@ export default function LocationPicker({ initialLat, initialLng, onLocationSelec
       if (!isMounted || !window.L || mapInstance.current || !mapRef.current) return;
       const L = window.L;
 
+      const startPos = L.latLng(defaultLat, defaultLng);
+
       const map = L.map(mapRef.current, {
-        center: [defaultLat, defaultLng],
+        center: startPos,
         zoom: 14,
         dragging: true,
         touchZoom: true
       });
 
-      // استخدام خرائط Carto Voyager السريعة التي تعمل بدون حظر على Vercel
       L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
         attribution: '© OpenStreetMap © CARTO',
         subdomains: 'abcd',
         maxZoom: 19
       }).addTo(map);
 
-      // أيقونة دبوس واضحة ومضمونة التحميل
       const customIcon = L.icon({
         iconUrl: 'https://cloudflare.com',
         iconRetinaUrl: 'https://cloudflare.com',
         shadowUrl: 'https://cloudflare.com',
-        iconSize:,
-        iconAnchor: [12, 41]
+        iconSize: L.point(25, 41),
+        iconAnchor: L.point(12, 41)
       });
 
-      const marker = L.marker([defaultLat, defaultLng], {
+      const marker = L.marker(startPos, {
         draggable: true,
         icon: customIcon
       }).addTo(map);
@@ -130,9 +130,10 @@ export default function LocationPicker({ initialLat, initialLng, onLocationSelec
         const lng = position.coords.longitude;
         setCoords({ lat, lng });
         onLocationSelect(lat, lng);
-        if (mapInstance.current && markerRef.current) {
-          mapInstance.current.setView([lat, lng], 16);
-          markerRef.current.setLatLng([lat, lng]);
+        if (mapInstance.current && markerRef.current && window.L) {
+          const newPos = window.L.latLng(lat, lng);
+          mapInstance.current.setView(newPos, 16);
+          markerRef.current.setLatLng(newPos);
           mapInstance.current.invalidateSize();
         }
       },
