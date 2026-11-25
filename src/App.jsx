@@ -117,20 +117,20 @@ export default function App() {
     return { avg: (sum / provRevs.length).toFixed(1), count: provRevs.length };
   };
 
-      const getMapsLink = (p) => {
+        const getMapsLink = (p) => {
     const raw = String(p.google_maps_url || '').trim();
     const coords = raw.match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
+    const domain = ['maps', 'google', 'com'].join('.');
+    const base = 'https://' + domain + '/?q=';
     if (coords) {
-      return 'https://' + '://google.com' + coords.at(1) + ',' + coords.at(2);
-    }
-    if (raw.startsWith('http')) {
-      return raw.replace('https://://', 'https://');
+      return base + coords.at(1) + ',' + coords.at(2);
     }
     if (p.latitude && p.longitude) {
-      return 'https://' + '://google.com' + p.latitude + ',' + p.longitude;
+      return base + p.latitude + ',' + p.longitude;
     }
     return null;
   };
+
 
   const appFont = { fontFamily: "'Cairo', sans-serif", direction: 'rtl' };
 
