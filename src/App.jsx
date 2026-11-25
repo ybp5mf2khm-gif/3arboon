@@ -302,3 +302,118 @@ export default function App() {
       </div>
     );
   }
+  return (
+    <div style={{ ...appFont, padding: 12 }}>
+      {view === 'booking' ? (
+        <>
+          {provider ? (
+            <BookingPage
+              provider={provider}
+              services={services}
+              reviews={reviews}
+              onSuccess={() => loadProviderDetails(provider)}
+            />
+          ) : (
+            <div style={{ textAlign: 'center', background: '#fff', padding: 28, borderRadius: 20, maxWidth: 420, margin: '40px auto', boxShadow: '0 10px 25px rgba(0,0,0,0.06)' }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>🔍</div>
+              <h3 style={{ margin: '0 0 8px', fontWeight: 800, color: '#0f172a' }}>هذه الصفحة غير متوفرة</h3>
+              <p style={{ color: '#64748b', fontSize: 14, marginBottom: 16 }}>قد يكون الرابط غير صحيح أو أن الحساب بانتظار التفعيل.</p>
+              <button
+                onClick={() => { window.location.href = '/'; }}
+                style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '12px 20px', borderRadius: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                الذهاب للصفحة الرئيسية
+              </button>
+            </div>
+          )}
+
+          <div style={{ textAlign: 'center', marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <button
+              onClick={() => {
+                setIsUnlocked(false);
+                setView('dashboard');
+              }}
+              style={{ background: 'none', border: 'none', color: '#334155', fontSize: 13, fontWeight: 700, textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              دخول صاحب المشروع (لوحة التحكم)
+            </button>
+            <button
+              onClick={() => setView('register')}
+              style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              + هل لديك صالون أو مشروع؟ أنشئ صفحة حجزك مجاناً
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{ maxWidth: 460, margin: '0 auto 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button
+              onClick={() => {
+                setIsUnlocked(false);
+                setView('booking');
+              }}
+              style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid #cbd5e1', background: '#fff', color: '#0f172a', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              {slug ? '→ العودة لصفحة الحجز' : '→ العودة للرئيسية'}
+            </button>
+            {isUnlocked && (
+              <button
+                onClick={() => {
+                  setIsUnlocked(false);
+                  setLoginIdentifier('');
+                  setPinInput('');
+                }}
+                style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                تسجيل الخروج
+              </button>
+            )}
+          </div>
+
+          {!isUnlocked ? (
+            <div style={{ maxWidth: 400, margin: '20px auto', background: '#fff', borderRadius: 22, overflow: 'hidden', textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.06)' }}>
+              <div style={{ background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)', color: '#fff', padding: '24px 20px' }}>
+                <div style={{ fontSize: 28, marginBottom: 6 }}>🔐</div>
+                <h3 style={{ margin: '0 0 4px', fontWeight: 800, fontSize: 20 }}>دخول أصحاب المشاريع</h3>
+                <p style={{ fontSize: 13, color: '#dbeafe', margin: 0 }}>أدخل البريد الإلكتروني أو الهاتف والرمز السري</p>
+              </div>
+              <form onSubmit={handleProviderLogin} style={{ padding: 22 }}>
+                <input
+                  type="text"
+                  placeholder="البريد الإلكتروني أو رقم الهاتف"
+                  value={loginIdentifier}
+                  onChange={(e) => setLoginIdentifier(e.target.value)}
+                  style={{ width: '100%', padding: 13, fontSize: 14, textAlign: 'center', borderRadius: 12, border: '1px solid #cbd5e1', background: '#fff', color: '#0f172a', marginBottom: 12, boxSizing: 'border-box', fontFamily: 'inherit' }}
+                  required
+                />
+                <input
+                  type="password"
+                  placeholder="الرمز السري (PIN)"
+                  value={pinInput}
+                  onChange={(e) => setPinInput(e.target.value)}
+                  style={{ width: '100%', padding: 13, fontSize: 18, textAlign: 'center', letterSpacing: 6, borderRadius: 12, border: '1px solid #cbd5e1', background: '#fff', color: '#0f172a', marginBottom: 16, boxSizing: 'border-box', fontFamily: 'inherit' }}
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={loginLoading}
+                  style={{ width: '100%', background: '#2563eb', color: '#fff', border: 'none', padding: 14, borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  {loginLoading ? 'جاري التحقق...' : 'دخول للوحة التحكم'}
+                </button>
+              </form>
+            </div>
+          ) : (
+            <DashboardPage
+              provider={provider}
+              bookings={bookings}
+              services={services}
+              onRefresh={() => loadProviderDetails(provider)}
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
