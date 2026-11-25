@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import StatsTab from './StatsTab';
+import SubscriptionBanner from './SubscriptionBanner';
 const ALL_HALF_HOURS = [];
 for (let h = 8; h <= 23; h++) {
   const hh = String(h).padStart(2, '0');
@@ -306,6 +307,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
       </div>
 
       <div style={{ padding: 18 }}>
+                <SubscriptionBanner provider={provider} />
         {upcomingReminders.length > 0 && (
           <div style={{ background: '#fff7ed', border: '1px solid #fdba74', borderRadius: 14, padding: 14, marginBottom: 16 }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: '#c2410c', marginBottom: 8 }}>
