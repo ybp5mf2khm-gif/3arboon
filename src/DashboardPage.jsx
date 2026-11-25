@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
+import LocationPicker from './LocationPicker';
 
 const ALL_HALF_HOURS = [];
 for (let h = 8; h <= 23; h++) {
@@ -22,6 +23,8 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
   const [phone, setPhone] = useState(provider.phone || '');
   const [email, setEmail] = useState(provider.email || '');
   const [pinCode, setPinCode] = useState(provider.pin_code || '');
+  const [latitude, setLatitude] = useState(provider.latitude || null);
+  const [longitude, setLongitude] = useState(provider.longitude || null);
 
   const initialPayments = (Array.isArray(provider.payment_methods) && provider.payment_methods.length > 0)
     ? provider.payment_methods
@@ -36,7 +39,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
   const [workingHours, setWorkingHours] = useState(initialHours);
   const [savingSettings, setSavingSettings] = useState(false);
 
-  // تحميل خط Cairo العربي العصري
   useEffect(() => {
     const link = document.createElement('link');
     link.href = 'https://googleapis.com';
@@ -55,7 +57,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     }
     return ph;
   };
-
   const getWhatsAppUrl = (b, customMsg) => {
     const ph = formatMoroccanPhone(b.client_phone);
     const defaultMsg = 'مرحبا ' + b.client_name + '، تم تأكيد موعدك في ' + provider.business_name + ' يوم ' + b.booking_date + ' الساعة ' + b.booking_time;
@@ -78,6 +79,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     }
     window.location.assign('https://wa.me?text=' + encodeURIComponent(textMsg));
   };
+
   const upcomingReminders = bookings.filter((b) => {
     if (b.status !== 'confirmed' || b.reminder_sent) return false;
     if (!b.booking_date || !b.booking_time) return false;
@@ -205,7 +207,9 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
         bank_name: firstPay.bank,
         rib: firstPay.account,
         payment_methods: paymentMethods,
-        working_hours: workingHours
+        working_hours: workingHours,
+        latitude: latitude,
+        longitude: longitude
       })
       .eq('id', provider.id);
 
@@ -239,7 +243,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
 
   return (
     <div style={{ ...pageFont, maxWidth: 460, margin: '8px auto', background: '#fff', borderRadius: 22, overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.06)' }}>
-      {/* الترويسة الاحترافية */}
       <div style={{ background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)', color: '#fff', padding: '22px 20px', textAlign: 'center' }}>
         <span style={{ background: 'rgba(255,255,255,0.18)', padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
           لوحة التحكم • عربون
@@ -273,7 +276,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
           </div>
         )}
 
-        {/* بطاقة رابط الحجز */}
         <div style={sectionCard}>
           <div style={{ fontSize: 12, color: '#1e3a8a', marginBottom: 6, fontWeight: 800 }}>
             🔗 رابط الحجز الخاص بزبائنك:
@@ -299,7 +301,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
           </div>
         </div>
 
-        {/* التبويبات الرئيسية */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 18, background: '#f1f5f9', padding: 5, borderRadius: 14 }}>
           <button
             onClick={() => setTab('bookings')}
@@ -432,6 +433,17 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
 
         {tab === 'settings' && (
           <form onSubmit={handleSaveSettings}>
+            <div style={sectionCard}>
+              <LocationPicker
+                initialLat={latitude}
+                initialLng={longitude}
+                onLocationSelect={(lat, lng) => {
+                  setLatitude(lat);
+                  setLongitude(lng);
+                }}
+              />
+            </div>
+
             <div style={sectionCard}>
               <strong style={{ display: 'block', marginBottom: 10, fontSize: 14, color: '#1e3a8a' }}>🏦 البنوك وطرق الدفع المتاحة:</strong>
               {paymentMethods.map((pm, idx) => (
