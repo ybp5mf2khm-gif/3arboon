@@ -27,7 +27,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
   const [email, setEmail] = useState(provider.email || '');
   const [pinCode, setPinCode] = useState(provider.pin_code || '');
 
-  // الحقول الجديدة: اللوجو، رابط خرائط جوجل، والمعلومات
   const [logoUrl, setLogoUrl] = useState(provider.logo_url || '');
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [googleMapsUrl, setGoogleMapsUrl] = useState(
@@ -38,6 +37,10 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
   );
   const [locating, setLocating] = useState(false);
   const [bio, setBio] = useState(provider.bio || '');
+
+  const [improvingBio, setImprovingBio] = useState(false);
+  const [checkingReceiptId, setCheckingReceiptId] = useState(null);
+  const [receiptReports, setReceiptReports] = useState({});
 
   const initialPayments = (Array.isArray(provider.payment_methods) && provider.payment_methods.length > 0)
     ? provider.payment_methods
@@ -59,6 +62,53 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     document.head.appendChild(link);
   }, []);
 
+  const handleImproveBioAI = async () => {
+    setImprovingBio(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-assistant', {
+        body: {
+          action: 'improve_bio',
+          businessName: bizName,
+          bio: bio
+        }
+      });
+      if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
+      if (data && data.result) {
+        setBio(data.result);
+      }
+    } catch (err) {
+      alert('تعذر تحسين الوصف: ' + err.message);
+    } finally {
+      setImprovingBio(false);
+    }
+  };
+
+  const handleVerifyReceiptAI = async (b) => {
+    if (!b.receipt_url) return;
+    setCheckingReceiptId(b.id);
+    try {
+      const srv = services.find((s) => String(s.id) === String(b.service_id));
+      const expectedAmount = srv ? srv.deposit_amount : 'غير محدد';
+
+      const { data, error } = await supabase.functions.invoke('ai-assistant', {
+        body: {
+          action: 'verify_receipt',
+          receiptUrl: b.receipt_url,
+          expectedAmount: expectedAmount
+        }
+      });
+      if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
+      if (data && data.result) {
+        setReceiptReports((prev) => ({ ...prev, [b.id]: data.result }));
+      }
+    } catch (err) {
+      alert('تعذر فحص الوصل: ' + err.message);
+    } finally {
+      setCheckingReceiptId(null);
+    }
+  };
   const handleLogoUpload = async (e) => {
     const file = e.target.files.item(0);
     if (!file) return;
@@ -134,6 +184,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     }
     window.location.assign('https://wa.me?text=' + encodeURIComponent(textMsg));
   };
+
   const upcomingReminders = bookings.filter((b) => {
     if (b.status !== 'confirmed' || b.reminder_sent) return false;
     if (!b.booking_date || !b.booking_time) return false;
@@ -164,7 +215,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     const msg = 'مرحبا ' + b.client_name + '، نذكرك بموعدك اليوم في ' + provider.business_name + ' على الساعة ' + b.booking_time + '. نتشرف بحضورك!';
     window.location.assign(getWhatsAppUrl(b, msg));
   };
-
   const updateStatus = async (b, newStatus) => {
     setUpdatingId(b.id);
     const { data, error } = await supabase
@@ -418,9 +468,24 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                   📞 {b.client_phone}
                 </div>
                 {b.receipt_url && (
-                  <a href={b.receipt_url} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 12, fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', padding: '5px 10px', borderRadius: 8, textDecoration: 'none' }}>
-                    عرض وصل الدفع ↗
-                  </a>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                    <a href={b.receipt_url} target="_blank" rel="noreferrer" style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', padding: '5px 10px', borderRadius: 8, textDecoration: 'none' }}>
+                      عرض وصل الدفع ↗
+                    </a>
+                    <button
+                      type="button"
+                      disabled={checkingReceiptId === b.id}
+                      onClick={() => handleVerifyReceiptAI(b)}
+                      style={{ background: '#7c3aed', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                    >
+                      {checkingReceiptId === b.id ? 'جاري الفحص...' : 'فحص بالذكاء الاصطناعي 🤖'}
+                    </button>
+                  </div>
+                )}
+                {receiptReports[b.id] && (
+                  <div style={{ marginTop: 8, padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, lineHeight: 1.6, background: receiptReports[b.id].startsWith('✅') ? '#f0fdf4' : '#fef2f2', border: receiptReports[b.id].startsWith('✅') ? '1px solid #86efac' : '1px solid #fca5a5', color: receiptReports[b.id].startsWith('✅') ? '#166534' : '#991b1b' }}>
+                    {receiptReports[b.id]}
+                  </div>
                 )}
                 <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
                   {b.status !== 'confirmed' && (
@@ -469,6 +534,12 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             ))}
           </div>
         )}
+
+---
+
+### الجزء 5 من 6: تبويب الخدمات + الإعدادات مع زر تحسين الوصف بالذكاء الاصطناعي
+
+```jsx
         {tab === 'services' && (
           <div>
             <form onSubmit={handleAddService} style={sectionCard}>
@@ -539,7 +610,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                 </div>
                 <input
                   type="text"
-                  placeholder="https://google.com..."
+                  placeholder="https://maps.google.com/..."
                   style={{ ...inputStyle, direction: 'ltr', textAlign: 'left' }}
                   value={googleMapsUrl}
                   onChange={(e) => {
@@ -549,9 +620,19 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                   }}
                 />
 
-                <label style={{ fontSize: 13, fontWeight: 700 }}>ℹ️ معلومات عن المحل (العنوان والوصف):</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <label style={{ fontSize: 13, fontWeight: 700 }}>ℹ️ معلومات عن المحل:</label>
+                  <button
+                    type="button"
+                    onClick={handleImproveBioAI}
+                    disabled={improvingBio}
+                    style={{ background: '#7c3aed', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    {improvingBio ? 'جاري الصياغة...' : 'تحسين بالذكاء الاصطناعي ✨'}
+                  </button>
+                </div>
                 <textarea
-                  rows="2"
+                  rows="3"
                   placeholder="مثال: صالون تجميل وحلاقة للنساء - حي جليز مراكش قرب مقهى..."
                   style={{ ...inputStyle, resize: 'vertical' }}
                   value={bio}
@@ -588,7 +669,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                   </button>
                 </div>
               </div>
-              <div style={sectionCard}>
+                            <div style={sectionCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <strong style={{ fontSize: 14, color: '#1e3a8a' }}>⏰ أوقات العمل (كل 30 دقيقة):</strong>
                   <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 800 }}>{workingHours.length} وقت متاح</span>
