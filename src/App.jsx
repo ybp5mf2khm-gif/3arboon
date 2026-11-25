@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+pimport React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import BookingPage from './BookingPage.jsx';
 import DashboardPage from './DashboardPage.jsx';
@@ -117,9 +117,18 @@ export default function App() {
     return { avg: (sum / provRevs.length).toFixed(1), count: provRevs.length };
   };
 
-    const getMapsLink = (p) => {
-    if (p.google_maps_url) return p.google_maps_url;
-    if (p.latitude && p.longitude) return ['https:', '', '://google.com', 'maps', 'search', '?api=1&query='].join('/') + p.latitude + ',' + p.longitude;
+      const getMapsLink = (p) => {
+    const raw = String(p.google_maps_url || '').trim();
+    const coords = raw.match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
+    if (coords) {
+      return 'https://' + '://google.com' + coords.at(1) + ',' + coords.at(2);
+    }
+    if (raw.startsWith('http')) {
+      return raw.replace('https://://', 'https://');
+    }
+    if (p.latitude && p.longitude) {
+      return 'https://' + '://google.com' + p.latitude + ',' + p.longitude;
+    }
     return null;
   };
 
