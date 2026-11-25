@@ -516,13 +516,18 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                   {locating ? 'جاري التحديد...' : 'توليد عبر GPS 🎯'}
                 </button>
               </div>
-              <input
-                type="url"
+                          <input
+                type="text"
                 placeholder="https://google.com..."
                 style={{ ...inputStyle, direction: 'ltr', textAlign: 'left' }}
                 value={googleMapsUrl}
-                onChange={(e) => setGoogleMapsUrl(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const match = val.match(/https?:\/\/[^\s]+/);
+                  setGoogleMapsUrl(match ? match.at(0) : val);
+                }}
               />
+
 
               <label style={{ fontSize: 13, fontWeight: 700 }}>ℹ️ معلومات عن المحل (العنوان والوصف):</label>
               <textarea
