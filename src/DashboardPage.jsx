@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import LocationPicker from './LocationPicker';
 
 const ALL_HALF_HOURS = [];
 for (let h = 8; h <= 23; h++) {
@@ -23,8 +22,18 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
   const [phone, setPhone] = useState(provider.phone || '');
   const [email, setEmail] = useState(provider.email || '');
   const [pinCode, setPinCode] = useState(provider.pin_code || '');
-  const [latitude, setLatitude] = useState(provider.latitude || null);
-  const [longitude, setLongitude] = useState(provider.longitude || null);
+
+  // الحقول الجديدة: اللوجو، رابط خرائط جوجل، والمعلومات
+  const [logoUrl, setLogoUrl] = useState(provider.logo_url || '');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [googleMapsUrl, setGoogleMapsUrl] = useState(
+    provider.google_maps_url ||
+    (provider.latitude && provider.longitude
+      ? 'https://google.com' + provider.latitude + ',' + provider.longitude
+      : '')
+  );
+  const [locating, setLocating] = useState(false);
+  const [bio, setBio] = useState(provider.bio || '');
 
   const initialPayments = (Array.isArray(provider.payment_methods) && provider.payment_methods.length > 0)
     ? provider.payment_methods
@@ -46,6 +55,46 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     document.head.appendChild(link);
   }, []);
 
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files.item(0);
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const fileName = 'logos/' + provider.id + '_' + Date.now() + '.' + ext;
+      const { error: upErr } = await supabase.storage.from('receipts').upload(fileName, file);
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(fileName);
+      setLogoUrl(urlData.publicUrl);
+      alert('تم رفع اللوجو بنجاح! اضغط "حفظ جميع الإعدادات" بالأسفل لتأكيده ✅');
+    } catch (err) {
+      alert('خطأ أثناء رفع اللوجو: ' + err.message);
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleGenerateGpsLink = () => {
+    if (!navigator.geolocation) {
+      return alert('متصفحك لا يدعم تحديد الموقع التلقائي');
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocating(false);
+        const lat = Number(position.coords.latitude).toFixed(6);
+        const lng = Number(position.coords.longitude).toFixed(6);
+        const link = 'https://google.com' + lat + ',' + lng;
+        setGoogleMapsUrl(link);
+        alert('تم إنشاء رابط خرائط جوجل لموقعك الحالي بنجاح 📍');
+      },
+      () => {
+        setLocating(false);
+        alert('يرجى تفعيل GPS في الهاتف والسماح للمتصفح بالوصول للموقع.');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
   const bookingLink = window.location.origin + '/?p=' + provider.slug;
 
   const formatMoroccanPhone = (rawPhone) => {
@@ -57,6 +106,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     }
     return ph;
   };
+
   const getWhatsAppUrl = (b, customMsg) => {
     const ph = formatMoroccanPhone(b.client_phone);
     const defaultMsg = 'مرحبا ' + b.client_name + '، تم تأكيد موعدك في ' + provider.business_name + ' يوم ' + b.booking_date + ' الساعة ' + b.booking_time;
@@ -208,8 +258,9 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
         rib: firstPay.account,
         payment_methods: paymentMethods,
         working_hours: workingHours,
-        latitude: latitude,
-        longitude: longitude
+        logo_url: logoUrl.trim() || null,
+        google_maps_url: googleMapsUrl.trim() || null,
+        bio: bio.trim() || null
       })
       .eq('id', provider.id);
 
@@ -434,13 +485,52 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
         {tab === 'settings' && (
           <form onSubmit={handleSaveSettings}>
             <div style={sectionCard}>
-              <LocationPicker
-                initialLat={latitude}
-                initialLng={longitude}
-                onLocationSelect={(lat, lng) => {
-                  setLatitude(lat);
-                  setLongitude(lng);
-                }}
+              <strong style={{ display: 'block', marginBottom: 10, fontSize: 14, color: '#1e3a8a' }}>
+                🖼️ هوية المشروع والموقع الجغرافي:
+              </strong>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, background: '#fff', padding: 10, borderRadius: 12, border: '1px solid #cbd5e1' }}>
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Logo" style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid #2563eb' }} />
+                ) : (
+                  <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                    🏪
+                  </div>
+                )}
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+                    {uploadingLogo ? 'جاري رفع اللوجو...' : 'اختر صورة لوجو المشروع:'}
+                  </label>
+                  <input type="file" accept="image/*" onChange={handleLogoUpload} disabled={uploadingLogo} style={{ fontSize: 12, width: '100%' }} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <label style={{ fontSize: 13, fontWeight: 700 }}>📍 رابط موقعك على خرائط جوجل:</label>
+                <button
+                  type="button"
+                  onClick={handleGenerateGpsLink}
+                  disabled={locating}
+                  style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  {locating ? 'جاري التحديد...' : 'توليد عبر GPS 🎯'}
+                </button>
+              </div>
+              <input
+                type="url"
+                placeholder="https://google.com..."
+                style={{ ...inputStyle, direction: 'ltr', textAlign: 'left' }}
+                value={googleMapsUrl}
+                onChange={(e) => setGoogleMapsUrl(e.target.value)}
+              />
+
+              <label style={{ fontSize: 13, fontWeight: 700 }}>ℹ️ معلومات عن المحل (العنوان والوصف):</label>
+              <textarea
+                rows="2"
+                placeholder="مثال: صالون تجميل وحلاقة للنساء - حي جليز مراكش قرب مقهى..."
+                style={{ ...inputStyle, resize: 'vertical' }}
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
               />
             </div>
 
@@ -473,7 +563,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                 </button>
               </div>
             </div>
-
             <div style={sectionCard}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <strong style={{ fontSize: 14, color: '#1e3a8a' }}>⏰ أوقات العمل (كل 30 دقيقة):</strong>
