@@ -118,7 +118,8 @@ export default function App() {
   };
 
   const getMapsLink = (p) => {
-    if (p.google_maps_url) return p.google_maps_url;
+ if (p.latitude && p.longitude) return ['https:', '', '://google.com', 'maps', 'search', '?api=1&query='].join('/') + p.latitude + ',' + p.longitude;
+
     if (p.latitude && p.longitude) return 'https://google.com' + p.latitude + ',' + p.longitude;
     return null;
   };
