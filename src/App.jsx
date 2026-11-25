@@ -227,12 +227,27 @@ export default function App() {
                           <div>
                             <h4 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0f172a' }}>{p.business_name}</h4>
                             {mapsUrl ? (
-                              <a
-                                href={mapsUrl}
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, fontSize: 12, fontWeight: 700, color: '#dc2626', background: '#fef2f2', padding: '3px 9px', borderRadius: 8, textDecoration: 'none', border: '1px solid #fecaca' }}
-                              >
-                                📍 الموقع على خرائط جوجل ↗
-                              </a>
+                            <a
+  href={mapsUrl}
+  style={{
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 5,
+    fontSize: 11,
+    fontWeight: 700,
+    color: '#1d4ed8',
+    background: '#eff6ff',
+    padding: '4px 9px',
+    borderRadius: 8,
+    textDecoration: 'none',
+    border: '1px solid #bfdbfe',
+    whiteSpace: 'nowrap'
+  }}
+>
+  📍 الموقع على الخريطة ↗
+</a>
+
                             ) : (
                               <span style={{ display: 'inline-block', marginTop: 3, fontSize: 11, color: '#64748b' }}>
                                 📍 المغرب
