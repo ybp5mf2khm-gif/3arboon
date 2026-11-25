@@ -9,55 +9,100 @@ export default function LocationPicker({ initialLat, initialLng, onLocationSelec
   const defaultLng = initialLng ? Number(initialLng) : -7.9811;
 
   const [locating, setLocating] = useState(false);
+  const [coords, setCoords] = useState(
+    initialLat && initialLng ? { lat: Number(initialLat), lng: Number(initialLng) } : null
+  );
 
   useEffect(() => {
-    if (!document.getElementById('leaflet-css')) {
-      const link = document.createElement('link');
-      link.id = 'leaflet-css';
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com';
-      document.head.appendChild(link);
-    }
+    let isMounted = true;
 
-    const initMap = () => {
-      if (!window.L || mapInstance.current || !mapRef.current) return;
-      const L = window.L;
-
-      mapInstance.current = L.map(mapRef.current).setView([defaultLat, defaultLng], 14);
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
-      }).addTo(mapInstance.current);
-
-      markerRef.current = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(mapInstance.current);
-
-      markerRef.current.on('dragend', () => {
-        const pos = markerRef.current.getLatLng();
-        onLocationSelect(pos.lat, pos.lng);
-      });
-
-      mapInstance.current.on('click', (e) => {
-        markerRef.current.setLatLng(e.latlng);
-        onLocationSelect(e.latlng.lat, e.latlng.lng);
+    const loadCss = () => {
+      return new Promise((resolve) => {
+        const existing = document.getElementById('leaflet-css');
+        if (existing) return resolve();
+        const link = document.createElement('link');
+        link.id = 'leaflet-css';
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com';
+        link.onload = () => resolve();
+        link.onerror = () => resolve();
+        document.head.appendChild(link);
       });
     };
 
-    if (window.L) {
-      initMap();
-    } else if (!document.getElementById('leaflet-js')) {
-      const script = document.createElement('script');
-      script.id = 'leaflet-js';
-      script.src = 'https://unpkg.com';
-      script.onload = initMap;
-      document.body.appendChild(script);
-    } else {
-      const interval = setInterval(() => {
-        if (window.L) {
-          clearInterval(interval);
-          initMap();
+    const loadJs = () => {
+      return new Promise((resolve) => {
+        if (window.L) return resolve();
+        const existing = document.getElementById('leaflet-js');
+        if (existing) {
+          const timer = setInterval(() => {
+            if (window.L) {
+              clearInterval(timer);
+              resolve();
+            }
+          }, 150);
+          return;
         }
-      }, 200);
-    }
+        const script = document.createElement('script');
+        script.id = 'leaflet-js';
+        script.src = 'https://unpkg.com';
+        script.onload = () => resolve();
+        document.body.appendChild(script);
+      });
+    };
+
+    const setupMap = async () => {
+      await loadCss();
+      await loadJs();
+
+      if (!isMounted || !window.L || mapInstance.current || !mapRef.current) return;
+      const L = window.L;
+
+      const map = L.map(mapRef.current, {
+        center: [defaultLat, defaultLng],
+        zoom: 14,
+        dragging: true,
+        touchZoom: true,
+        scrollWheelZoom: true
+      });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(map);
+
+      const marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+
+      marker.on('dragend', () => {
+        const pos = marker.getLatLng();
+        setCoords({ lat: pos.lat, lng: pos.lng });
+        onLocationSelect(pos.lat, pos.lng);
+      });
+
+      map.on('click', (e) => {
+        marker.setLatLng(e.latlng);
+        setCoords({ lat: e.latlng.lat, lng: e.latlng.lng });
+        onLocationSelect(e.latlng.lat, e.latlng.lng);
+      });
+
+      mapInstance.current = map;
+      markerRef.current = marker;
+
+      setTimeout(() => {
+        if (mapInstance.current) {
+          mapInstance.current.invalidateSize();
+        }
+      }, 300);
+    };
+
+    setupMap();
+
+    return () => {
+      isMounted = false;
+      if (mapInstance.current) {
+        mapInstance.current.remove();
+        mapInstance.current = null;
+      }
+    };
   }, []);
 
   const handleGetCurrentLocation = () => {
@@ -70,16 +115,19 @@ export default function LocationPicker({ initialLat, initialLng, onLocationSelec
         setLocating(false);
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
+        setCoords({ lat, lng });
         onLocationSelect(lat, lng);
         if (mapInstance.current && markerRef.current) {
           mapInstance.current.setView([lat, lng], 16);
           markerRef.current.setLatLng([lat, lng]);
+          mapInstance.current.invalidateSize();
         }
       },
       () => {
         setLocating(false);
         alert('تعذر تحديد موقعك. يرجى تفعيل GPS في الهاتف والسماح للمتصفح بالوصول للموقع.');
-      }
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
@@ -114,18 +162,25 @@ export default function LocationPicker({ initialLat, initialLng, onLocationSelec
     React.createElement('div', {
       ref: mapRef,
       style: {
-        height: 240,
+        height: 250,
         width: '100%',
         borderRadius: 12,
         border: '1px solid #cbd5e1',
         zIndex: 1,
-        background: '#e2e8f0'
+        background: '#e2e8f0',
+        overflow: 'hidden'
       }
     }),
-    React.createElement(
-      'p',
-      { style: { fontSize: 11, color: '#64748b', margin: '6px 0 0' } },
-      'انقر في أي مكان على الخريطة أو اسحب الدبوس الأزرق لتحديد موقع مشروعك بدقة ثم اضغط "حفظ جميع الإعدادات".'
-    )
+    coords
+      ? React.createElement(
+          'div',
+          { style: { fontSize: 12, color: '#16a34a', fontWeight: 700, marginTop: 6 } },
+          '✅ تم تحديد الإحداثيات: ' + coords.lat.toFixed(5) + ', ' + coords.lng.toFixed(5)
+        )
+      : React.createElement(
+          'p',
+          { style: { fontSize: 11, color: '#64748b', margin: '6px 0 0' } },
+          'انقر في أي مكان على الخريطة أو اسحب الدبوس الأزرق لتحديد موقع مشروعك بدقة ثم اضغط "حفظ جميع الإعدادات".'
+        )
   );
 }
