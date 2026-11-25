@@ -18,12 +18,11 @@ export default function LocationPicker({ initialLat, initialLng, onLocationSelec
 
     const loadCss = () => {
       return new Promise((resolve) => {
-        const existing = document.getElementById('leaflet-css');
-        if (existing) return resolve();
+        if (document.getElementById('leaflet-css')) return resolve();
         const link = document.createElement('link');
         link.id = 'leaflet-css';
         link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com';
+        link.href = 'https://cloudflare.com';
         link.onload = () => resolve();
         link.onerror = () => resolve();
         document.head.appendChild(link);
@@ -33,8 +32,7 @@ export default function LocationPicker({ initialLat, initialLng, onLocationSelec
     const loadJs = () => {
       return new Promise((resolve) => {
         if (window.L) return resolve();
-        const existing = document.getElementById('leaflet-js');
-        if (existing) {
+        if (document.getElementById('leaflet-js')) {
           const timer = setInterval(() => {
             if (window.L) {
               clearInterval(timer);
@@ -45,7 +43,7 @@ export default function LocationPicker({ initialLat, initialLng, onLocationSelec
         }
         const script = document.createElement('script');
         script.id = 'leaflet-js';
-        script.src = 'https://unpkg.com';
+        script.src = 'https://cloudflare.com';
         script.onload = () => resolve();
         document.body.appendChild(script);
       });
@@ -62,15 +60,29 @@ export default function LocationPicker({ initialLat, initialLng, onLocationSelec
         center: [defaultLat, defaultLng],
         zoom: 14,
         dragging: true,
-        touchZoom: true,
-        scrollWheelZoom: true
+        touchZoom: true
       });
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
+      // استخدام خرائط Carto Voyager السريعة التي تعمل بدون حظر على Vercel
+      L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap © CARTO',
+        subdomains: 'abcd',
+        maxZoom: 19
       }).addTo(map);
 
-      const marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+      // أيقونة دبوس واضحة ومضمونة التحميل
+      const customIcon = L.icon({
+        iconUrl: 'https://cloudflare.com',
+        iconRetinaUrl: 'https://cloudflare.com',
+        shadowUrl: 'https://cloudflare.com',
+        iconSize:,
+        iconAnchor: [12, 41]
+      });
+
+      const marker = L.marker([defaultLat, defaultLng], {
+        draggable: true,
+        icon: customIcon
+      }).addTo(map);
 
       marker.on('dragend', () => {
         const pos = marker.getLatLng();
@@ -88,10 +100,11 @@ export default function LocationPicker({ initialLat, initialLng, onLocationSelec
       markerRef.current = marker;
 
       setTimeout(() => {
-        if (mapInstance.current) {
-          mapInstance.current.invalidateSize();
-        }
+        if (mapInstance.current) mapInstance.current.invalidateSize();
       }, 300);
+      setTimeout(() => {
+        if (mapInstance.current) mapInstance.current.invalidateSize();
+      }, 1000);
     };
 
     setupMap();
@@ -168,7 +181,8 @@ export default function LocationPicker({ initialLat, initialLng, onLocationSelec
         border: '1px solid #cbd5e1',
         zIndex: 1,
         background: '#e2e8f0',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        direction: 'ltr'
       }
     }),
     coords
