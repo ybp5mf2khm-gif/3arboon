@@ -20,7 +20,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [updatingId, setUpdatingId] = useState(null);
-
   const [bizName, setBizName] = useState(provider.business_name || '');
   const [ownerName, setOwnerName] = useState(provider.owner_name || '');
   const [phone, setPhone] = useState(provider.phone || '');
@@ -42,6 +41,19 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
   const [checkingReceiptId, setCheckingReceiptId] = useState(null);
   const [receiptReports, setReceiptReports] = useState({});
 
+  const [generatingAd, setGeneratingAd] = useState(false);
+  const [generatedAd, setGeneratedAd] = useState('');
+  const [copiedAd, setCopiedAd] = useState(false);
+
+  const [serviceCategory, setServiceCategory] = useState('');
+  const [suggestingServices, setSuggestingServices] = useState(false);
+  const [suggestedServices, setSuggestedServices] = useState([]);
+  const [addingSuggestedIdx, setAddingSuggestedIdx] = useState(null);
+
+  const [analyzingStats, setAnalyzingStats] = useState(false);
+  const [statsAdvice, setStatsAdvice] = useState('');
+  const [generatingRetentionPhone, setGeneratingRetentionPhone] = useState(null);
+
   const initialPayments = (Array.isArray(provider.payment_methods) && provider.payment_methods.length > 0)
     ? provider.payment_methods
     : (provider.rib ? [{ bank: provider.bank_name || 'CIH Bank', account: provider.rib }] : []);
@@ -61,6 +73,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     link.rel = 'stylesheet';
     document.head.appendChild(link);
   }, []);
+  const bookingLink = window.location.origin + '/?p=' + provider.slug;
 
   const handleImproveBioAI = async () => {
     setImprovingBio(true);
@@ -109,6 +122,152 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
       setCheckingReceiptId(null);
     }
   };
+
+  const handleGenerateAdAI = async () => {
+    setGeneratingAd(true);
+    try {
+      const servicesText = services.length > 0
+        ? services.map((s) => s.title + ' (' + s.total_price + ' درهم)').join('، ')
+        : 'خدمات متنوعة واحترافية';
+
+      const { data, error } = await supabase.functions.invoke('ai-assistant', {
+        body: {
+          action: 'generate_ad',
+          businessName: provider.business_name,
+          bio: provider.bio || '',
+          servicesList: servicesText,
+          bookingLink: bookingLink
+        }
+      });
+      if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
+      if (data && data.result) {
+        setGeneratedAd(data.result);
+      }
+    } catch (err) {
+      alert('تعذر توليد الإعلان: ' + err.message);
+    } finally {
+      setGeneratingAd(false);
+    }
+  };
+
+  const handleCopyAd = () => {
+    if (!generatedAd) return;
+    navigator.clipboard.writeText(generatedAd);
+    setCopiedAd(true);
+    setTimeout(() => setCopiedAd(false), 2500);
+  };
+  const handleSuggestServicesAI = async () => {
+    if (!serviceCategory.trim()) {
+      return alert('يرجى كتابة نوع نشاطك أولاً (مثال: حلاقة رجال، تجميل، أظافر...)');
+    }
+    setSuggestingServices(true);
+    setSuggestedServices([]);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-assistant', {
+        body: {
+          action: 'suggest_services',
+          businessCategory: serviceCategory.trim()
+        }
+      });
+      if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
+      if (data && data.result) {
+        const cleanJson = data.result.replace(/```json|```/g, '').trim();
+        const parsed = JSON.parse(cleanJson);
+        if (Array.isArray(parsed)) {
+          setSuggestedServices(parsed);
+        } else {
+          throw new Error('صيغة البيانات غير صالحة');
+        }
+      }
+    } catch (err) {
+      alert('تعذر اقتراح الخدمات: ' + err.message);
+    } finally {
+      setSuggestingServices(false);
+    }
+  };
+
+  const handleAddSuggestedService = async (srv, idx) => {
+    setAddingSuggestedIdx(idx);
+    const { error } = await supabase.from('services').insert([{
+      provider_id: provider.id,
+      title: srv.title,
+      total_price: Number(srv.total_price) || 100,
+      deposit_amount: Number(srv.deposit_amount) || 30
+    }]);
+    setAddingSuggestedIdx(null);
+
+    if (error) return alert('خطأ في الإضافة: ' + error.message);
+    setSuggestedServices((prev) => prev.filter((_, i) => i !== idx));
+    onRefresh();
+  };
+
+  const handleAnalyzeStatsAI = async () => {
+    setAnalyzingStats(true);
+    try {
+      const confirmedBookings = bookings.filter((b) => b.status === 'confirmed');
+      const rejectedBookings = bookings.filter((b) => b.status === 'rejected');
+      const pendingBookings = bookings.filter((b) => b.status === 'pending');
+
+      const totalRevenue = confirmedBookings.reduce((sum, b) => {
+        const srv = services.find((s) => String(s.id) === String(b.service_id));
+        return sum + (srv ? Number(srv.total_price || 0) : 0);
+      }, 0);
+
+      const summary =
+        'إجمالي الحجوزات: ' + bookings.length +
+        ' | المؤكدة: ' + confirmedBookings.length +
+        ' | المعلقة: ' + pendingBookings.length +
+        ' | المرفوضة: ' + rejectedBookings.length +
+        ' | الأرباح التقديرية المؤكدة: ' + totalRevenue + ' درهم مغربي' +
+        ' | عدد الخدمات المتوفرة: ' + services.length;
+
+      const { data, error } = await supabase.functions.invoke('ai-assistant', {
+        body: {
+          action: 'analyze_stats',
+          businessName: provider.business_name,
+          statsSummary: summary
+        }
+      });
+      if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
+      if (data && data.result) {
+        setStatsAdvice(data.result);
+      }
+    } catch (err) {
+      alert('تعذر تحليل الإحصائيات: ' + err.message);
+    } finally {
+      setAnalyzingStats(false);
+    }
+  };
+
+  const handleSendRetentionAI = async (client) => {
+    setGeneratingRetentionPhone(client.phone);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-assistant', {
+        body: {
+          action: 'retention_message',
+          businessName: provider.business_name,
+          clientName: client.name,
+          lastVisitDate: client.lastDate,
+          bookingLink: bookingLink
+        }
+      });
+      if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
+      const finalMsg = (data && data.result)
+        ? data.result
+        : ('مرحبا ' + client.name + '، توحشناك في ' + provider.business_name + '! احجز موعدك الجديد عبر: ' + bookingLink);
+
+      const ph = formatMoroccanPhone(client.phone);
+      window.location.assign('https://wa.me' + ph + '?text=' + encodeURIComponent(finalMsg));
+    } catch (err) {
+      alert('تعذر توليد الرسالة: ' + err.message);
+    } finally {
+      setGeneratingRetentionPhone(null);
+    }
+  };
   const handleLogoUpload = async (e) => {
     const file = e.target.files.item(0);
     if (!file) return;
@@ -150,8 +309,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     );
   };
 
-  const bookingLink = window.location.origin + '/?p=' + provider.slug;
-
   const formatMoroccanPhone = (rawPhone) => {
     let ph = String(rawPhone || '').replace(/\D/g, '');
     if (ph.startsWith('0')) {
@@ -184,7 +341,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     }
     window.location.assign('https://wa.me?text=' + encodeURIComponent(textMsg));
   };
-
   const upcomingReminders = bookings.filter((b) => {
     if (b.status !== 'confirmed' || b.reminder_sent) return false;
     if (!b.booking_date || !b.booking_time) return false;
@@ -194,6 +350,29 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     const diffHours = (apptTime.getTime() - now.getTime()) / (1000 * 60 * 60);
     return diffHours <= 2 && diffHours >= -1;
   });
+
+  const inactiveClients = (() => {
+    const map = {};
+    const now = new Date();
+    bookings.forEach((b) => {
+      if (b.status !== 'confirmed' || !b.client_phone || !b.booking_date) return;
+      const ph = formatMoroccanPhone(b.client_phone);
+      if (!ph) return;
+      if (!map[ph] || b.booking_date > map[ph].lastDate) {
+        map[ph] = {
+          name: b.client_name || 'زبوننا الكريم',
+          phone: b.client_phone,
+          lastDate: b.booking_date
+        };
+      }
+    });
+    return Object.values(map).filter((c) => {
+      const last = new Date(c.lastDate + 'T00:00:00');
+      if (isNaN(last.getTime())) return false;
+      const daysDiff = (now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24);
+      return daysDiff >= 30;
+    });
+  })();
 
   const handleSendReminder = async (b) => {
     setUpdatingId(b.id);
@@ -215,6 +394,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     const msg = 'مرحبا ' + b.client_name + '، نذكرك بموعدك اليوم في ' + provider.business_name + ' على الساعة ' + b.booking_time + '. نتشرف بحضورك!';
     window.location.assign(getWhatsAppUrl(b, msg));
   };
+
   const updateStatus = async (b, newStatus) => {
     setUpdatingId(b.id);
     const { data, error } = await supabase
@@ -238,7 +418,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
       alert('تم رفض الحجز بنجاح');
     }
   };
-
   const handleAddService = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -381,7 +560,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             ))}
           </div>
         )}
-
         <div style={sectionCard}>
           <div style={{ fontSize: 12, color: '#1e3a8a', marginBottom: 6, fontWeight: 800 }}>
             🔗 رابط الحجز الخاص بزبائنك:
@@ -389,7 +567,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
           <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: 10, padding: '9px 12px', fontSize: 12, color: '#0f172a', direction: 'ltr', textAlign: 'left', overflowX: 'auto', whiteSpace: 'nowrap', marginBottom: 10 }}>
             {bookingLink}
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
             <button
               type="button"
               onClick={handleCopyLink}
@@ -405,7 +583,43 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
               مشاركة واتساب 💬
             </button>
           </div>
+
+          <button
+            type="button"
+            disabled={generatingAd}
+            onClick={handleGenerateAdAI}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            {generatingAd ? 'جاري كتابة إعلان جذاب...' : 'كتابة إعلان ترويجي بالذكاء الاصطناعي 📣'}
+          </button>
+
+          {generatedAd && (
+            <div style={{ marginTop: 10, background: '#fff', border: '1px solid #ddd6fe', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#5b21b6', marginBottom: 6 }}>
+                ✨ إعلانك جاهز للنشر في ستوري واتساب وإنستغرام:
+              </div>
+              <div style={{ fontSize: 13, color: '#1e293b', whiteSpace: 'pre-line', lineHeight: 1.6, background: '#f5f3ff', padding: 10, borderRadius: 8, marginBottom: 8 }}>
+                {generatedAd}
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={handleCopyAd}
+                  style={{ flex: 1, padding: '8px', borderRadius: 8, border: 'none', background: copiedAd ? '#16a34a' : '#5b21b6', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  {copiedAd ? 'تم نسخ الإعلان ✅' : 'نسخ الإعلان 📋'}
+                </button>
+                <a
+                  href={'https://wa.me' + encodeURIComponent(generatedAd)}
+                  style={{ flex: 1, textAlign: 'center', textDecoration: 'none', padding: '8px', borderRadius: 8, background: '#25D366', color: '#fff', fontWeight: 700, fontSize: 12 }}
+                >
+                  نشر في واتساب 💬
+                </a>
+              </div>
+            </div>
+          )}
         </div>
+
         <div style={{ display: 'flex', gap: 6, marginBottom: 18, background: '#f1f5f9', padding: 5, borderRadius: 14 }}>
           <button
             onClick={() => setTab('bookings')}
@@ -438,10 +652,63 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             ⚙️
           </button>
         </div>
-
         {tab === 'premium' && <PremiumTab provider={provider} bookings={bookings} services={services} />}
-        {tab === 'stats' && <StatsTab bookings={bookings} services={services} />}
 
+        {tab === 'stats' && (
+          <div>
+            <StatsTab bookings={bookings} services={services} />
+
+            <div style={{ ...sectionCard, marginTop: 14, background: '#f5f3ff', borderColor: '#ddd6fe' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <strong style={{ fontSize: 13, color: '#5b21b6' }}>🧠 مستشار الأرباح الذكي:</strong>
+                <button
+                  type="button"
+                  disabled={analyzingStats}
+                  onClick={handleAnalyzeStatsAI}
+                  style={{ background: '#7c3aed', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  {analyzingStats ? 'جاري التحليل...' : 'تحليل أرباحي ونصائح ✨'}
+                </button>
+              </div>
+              {statsAdvice ? (
+                <div style={{ background: '#fff', padding: 12, borderRadius: 10, fontSize: 13, color: '#1e293b', lineHeight: 1.7, whiteSpace: 'pre-line', border: '1px solid #e9d5ff' }}>
+                  {statsAdvice}
+                </div>
+              ) : (
+                <p style={{ margin: 0, fontSize: 12, color: '#6b7280' }}>
+                  اضغط على الزر للحصول على 3 نصائح عملية لزيادة أرباحك وتنظيم مواعيدك بناءً على بيانات مشروعك.
+                </p>
+              )}
+            </div>
+
+            {inactiveClients.length > 0 && (
+              <div style={{ ...sectionCard, background: '#f0fdf4', borderColor: '#bbf7d0' }}>
+                <strong style={{ display: 'block', fontSize: 13, color: '#166534', marginBottom: 4 }}>
+                  💌 استعادة الزبائن الغائبين (+30 يوم):
+                </strong>
+                <p style={{ fontSize: 12, color: '#475569', margin: '0 0 10px' }}>
+                  أرسل لهم رسالة ترحيبية مخصصة بالدارجة عبر واتساب لتشجيعهم على العودة:
+                </p>
+                {inactiveClients.map((cl, idx) => (
+                  <div key={idx} style={{ background: '#fff', border: '1px solid #dcfce7', borderRadius: 10, padding: 10, marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <div style={{ fontSize: 12 }}>
+                      <strong style={{ color: '#0f172a', fontSize: 13 }}>{cl.name}</strong>
+                      <div style={{ color: '#64748b' }}>آخر زيارة: {cl.lastDate}</div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={generatingRetentionPhone === cl.phone}
+                      onClick={() => handleSendRetentionAI(cl)}
+                      style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '7px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }}
+                    >
+                      {generatingRetentionPhone === cl.phone ? 'جاري الصياغة...' : 'رسالة ذكية 💬'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         {tab === 'bookings' && (
           <div>
             {bookings.length === 0 && (
@@ -534,11 +801,59 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             ))}
           </div>
         )}
-
         {tab === 'services' && (
           <div>
+            <div style={{ ...sectionCard, background: '#f5f3ff', borderColor: '#ddd6fe' }}>
+              <strong style={{ display: 'block', marginBottom: 6, fontSize: 13, color: '#5b21b6' }}>
+                ✨ مقترح الخدمات والأسعار الذكي:
+              </strong>
+              <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 8px' }}>
+                اكتب نوع نشاطك وسيقترح الذكاء الاصطناعي 5 خدمات جاهزة بالدرهم المغربي:
+              </p>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  type="text"
+                  placeholder="مثال: حلاقة رجال، تجميل، أظافر..."
+                  style={{ ...inputStyle, margin: 0, flex: 2 }}
+                  value={serviceCategory}
+                  onChange={(e) => setServiceCategory(e.target.value)}
+                />
+                <button
+                  type="button"
+                  disabled={suggestingServices}
+                  onClick={handleSuggestServicesAI}
+                  style={{ flex: 1, background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', padding: '0 10px' }}
+                >
+                  {suggestingServices ? 'جاري...' : 'اقتراح ✨'}
+                </button>
+              </div>
+
+              {suggestedServices.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  {suggestedServices.map((srv, idx) => (
+                    <div key={idx} style={{ background: '#fff', border: '1px solid #e9d5ff', borderRadius: 10, padding: 10, marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                      <div style={{ fontSize: 12 }}>
+                        <strong style={{ display: 'block', color: '#0f172a', fontSize: 13 }}>{srv.title}</strong>
+                        <span style={{ color: '#475569' }}>
+                          الثمن: {srv.total_price} درهم • العربون: <strong style={{ color: '#16a34a' }}>{srv.deposit_amount} درهم</strong>
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={addingSuggestedIdx === idx}
+                        onClick={() => handleAddSuggestedService(srv, idx)}
+                        style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '7px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }}
+                      >
+                        {addingSuggestedIdx === idx ? 'جاري...' : '+ إضافة'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <form onSubmit={handleAddService} style={sectionCard}>
-              <strong style={{ display: 'block', marginBottom: 10, fontSize: 14, color: '#1e3a8a' }}>+ إضافة خدمة جديدة</strong>
+              <strong style={{ display: 'block', marginBottom: 10, fontSize: 14, color: '#1e3a8a' }}>+ إضافة خدمة جديدة يدوياً</strong>
               <input type="text" placeholder="اسم الخدمة (مثال: قص الشعر)" style={inputStyle} value={title} onChange={(e) => setTitle(e.target.value)} required />
               <div style={{ display: 'flex', gap: 8 }}>
                 <input type="number" placeholder="الثمن (درهم)" style={inputStyle} value={price} onChange={(e) => setPrice(e.target.value)} required />
@@ -566,7 +881,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             ))}
           </div>
         )}
-
         {tab === 'settings' && (
           <>
             <HolidaysSection provider={provider} onRefresh={onRefresh} />
@@ -605,7 +919,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                 </div>
                 <input
                   type="text"
-                  placeholder="https://maps.google.com/..."
+                  placeholder="https://google.com..."
                   style={{ ...inputStyle, direction: 'ltr', textAlign: 'left' }}
                   value={googleMapsUrl}
                   onChange={(e) => {
@@ -664,79 +978,3 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                   </button>
                 </div>
               </div>
-                            <div style={sectionCard}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <strong style={{ fontSize: 14, color: '#1e3a8a' }}>⏰ أوقات العمل (كل 30 دقيقة):</strong>
-                  <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 800 }}>{workingHours.length} وقت متاح</span>
-                </div>
-                <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 10px' }}>
-                  اضغط على الساعة لتفعيلها (أخضر) أو إغلاقها (أبيض):
-                </p>
-
-                <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-                  <button type="button" onClick={() => selectPresetHours('day')} style={{ flex: 1, padding: '7px 4px', fontSize: 11, borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>
-                    نهاري (09-19:30)
-                  </button>
-                  <button type="button" onClick={() => selectPresetHours('evening')} style={{ flex: 1, padding: '7px 4px', fontSize: 11, borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>
-                    مسائي (14-23:00)
-                  </button>
-                  <button type="button" onClick={() => selectPresetHours('all')} style={{ flex: 1, padding: '7px 4px', fontSize: 11, borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>
-                    تحديد الكل
-                  </button>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, direction: 'ltr' }}>
-                  {ALL_HALF_HOURS.map((hr) => {
-                    const isSelected = workingHours.includes(hr);
-                    return (
-                      <button
-                        key={hr}
-                        type="button"
-                        onClick={() => toggleWorkingHour(hr)}
-                        style={{
-                          padding: '8px 4px',
-                          borderRadius: 8,
-                          border: isSelected ? '1px solid #16a34a' : '1px solid #cbd5e1',
-                          background: isSelected ? '#16a34a' : '#fff',
-                          color: isSelected ? '#fff' : '#64748b',
-                          fontWeight: 700,
-                          fontSize: 13,
-                          cursor: 'pointer',
-                          fontFamily: 'inherit'
-                        }}
-                      >
-                        {hr}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div style={sectionCard}>
-                <strong style={{ display: 'block', marginBottom: 10, fontSize: 14, color: '#1e3a8a' }}>👤 تعديل بيانات الحساب:</strong>
-                <label style={{ fontSize: 13, fontWeight: 700 }}>اسم المشروع / الصالون</label>
-                <input type="text" style={inputStyle} value={bizName} onChange={(e) => setBizName(e.target.value)} required />
-
-                <label style={{ fontSize: 13, fontWeight: 700 }}>اسم صاحب المشروع</label>
-                <input type="text" style={inputStyle} value={ownerName} onChange={(e) => setOwnerName(e.target.value)} required />
-
-                <label style={{ fontSize: 13, fontWeight: 700 }}>رقم الهاتف (واتساب)</label>
-                <input type="tel" style={inputStyle} value={phone} onChange={(e) => setPhone(e.target.value)} required />
-
-                <label style={{ fontSize: 13, fontWeight: 700 }}>البريد الإلكتروني</label>
-                <input type="email" style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} />
-
-                <label style={{ fontSize: 13, fontWeight: 700 }}>الرمز السري (PIN)</label>
-                <input type="text" maxLength="6" style={{ ...inputStyle, textAlign: 'center', letterSpacing: 4, fontWeight: 700 }} value={pinCode} onChange={(e) => setPinCode(e.target.value)} required />
-              </div>
-
-              <button type="submit" disabled={savingSettings} style={{ width: '100%', background: '#16a34a', color: '#fff', border: 'none', padding: 14, borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(22,163,74,0.25)' }}>
-                {savingSettings ? 'جاري الحفظ...' : 'حفظ جميع الإعدادات ✅'}
-              </button>
-            </form>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
