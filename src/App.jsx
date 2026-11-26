@@ -122,9 +122,26 @@ export default function App() {
         }
       });
 
-      if (error) throw error;
+            if (error) throw error;
       if (data && data.error) throw new Error(data.error);
       if (data && data.result) {
+        const replyText = data.result;
+        setAiSearchResult(replyText);
+
+        const aiMentioned = allProviders.filter((p) => {
+          const bName = String(p.business_name || '').trim().toLowerCase();
+          return bName && replyText.toLowerCase().includes(bName);
+        });
+
+        const combined = [...directMatches];
+        aiMentioned.forEach((ap) => {
+          if (!combined.some((c) => c.id === ap.id)) {
+            combined.push(ap);
+          }
+        });
+        setMatchedProviders(combined);
+      }
+
         setAiSearchResult(data.result);
       }
     } catch (err) {
