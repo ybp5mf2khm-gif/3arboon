@@ -142,8 +142,8 @@ export default function App() {
         setMatchedProviders(combined);
       }
 
-        setAiSearchResult(data.result);
-      }
+      
+      
     } catch (err) {
       if (directMatches.length > 0) {
         setAiSearchResult('✅ وجدنا ' + directMatches.length + ' نتيجة مطابقة لبحثك:');
