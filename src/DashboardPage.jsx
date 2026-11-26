@@ -203,9 +203,10 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
   const handleAnalyzeStatsAI = async () => {
     setAnalyzingStats(true);
     try {
-      const confirmed = .filter((b) => b.status === 'confirmed').length;
-      const cancelled = .filter((b) => b.status === 'cancelled').length;
-      const summary = `إجمالي الحجوزات: ${.length}، المؤكدة: ${confirmed}، الملغاة: ${cancelled}، عدد الخدمات: ${services.length}`;
+          const confirmed = bookings.filter((b) => b.status === 'confirmed').length;
+      const cancelled = bookings.filter((b) => b.status === 'cancelled').length;
+      const summary = `إجمالي الحجوزات: ${bookings.length}، المؤكدة: ${confirmed}، الملغاة: ${cancelled}، عدد الخدمات: ${services.length}`;
+
       const { data, error } = await supabase.functions.invoke('ai-assistant', {
         body: {
           action: 'analyze_stats',
