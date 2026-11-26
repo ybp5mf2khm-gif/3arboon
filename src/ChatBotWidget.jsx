@@ -509,49 +509,7 @@ export default function ChatBotWidget({
       const { error: upErr } = await supabase.storage.from('receipts').upload(fileName, file);
       if (upErr) throw upErr;
 
-      const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(fileName);
 
-      const { error: insErr } = await supabase.from('bookings').insert([{
-        provider_id: prov.id,
-        service_id: srv.id,
-        client_name: bookingDraft.clientName,
-        client_phone: bookingDraft.clientPhone,
-        booking_date: bookingDraft.date,
-        booking_time: bookingDraft.time,
-        receipt_url: urlData.publicUrl
-      }]);
-
-      if (insErr) throw insErr;
-
-      const rawWa = String(prov.phone || '').replace(/\D/g, '');
-      let waPhone = rawWa;
-      if (waPhone.startsWith('0')) waPhone = '212' + waPhone.slice(1);
-      else if (waPhone && !waPhone.startsWith('212')) waPhone = '212' + waPhone;
-
-      const waMsg =
-        'مرحبا ' + prov.business_name + '، حجزت موعداً عبر روبوت 3arboon ورفعت وصل التحويل:\n' +
-        'الاسم: ' + bookingDraft.clientName + '\n' +
-        'الخدمة: ' + srv.title + '\n' +
-        'الموعد: ' + bookingDraft.date + ' الساعة ' + bookingDraft.time + '\n' +
-        'العربون: ' + srv.deposit_amount + ' درهم';
-
-      const waUrl = waPhone ? ('https://wa.me' + waPhone + '?text=' + encodeURIComponent(waMsg)) : null;
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'bot',
-          text:
-            '✅ تم رفع الوصل وتسجيل حجزك بنجاح!\n' +
-            '🏪 المحل: ' + prov.business_name + '\n' +
-            '✨ الخدمة: ' + srv.title + '\n' +
-            '📅 الموعد: ' + bookingDraft.date + ' على الساعة ' + bookingDraft.time + '\n' +
-            '🔍 تم إرسال الوصل للنظام للتحقق منه. يمكنك أيضاً إشعار المحل عبر واتساب 👇',
-          choices: [],
-          matchedProvs: [],
-          waUrl
-        }
-      ]);
 
       setBookingDraft({
         step: 'idle',
