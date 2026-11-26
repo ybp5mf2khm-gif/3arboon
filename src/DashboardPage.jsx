@@ -562,7 +562,7 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
             { id: 'stats', label: '📊 الإحصائيات' },
             { id: 'settings', label: '⚙️ الإعدادات' },
             { id: 'premium', label: '👑 الاشتراك' }
-          ]map((t) => (
+          ].map((t) => (
             <button
               key={t.id}
               type="button"
