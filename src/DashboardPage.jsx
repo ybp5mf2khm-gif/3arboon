@@ -115,6 +115,13 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
       if (data && data.error) throw new Error(data.error);
       if (data && data.result) {
         setReceiptReports((prev) => ({ ...prev, [b.id]: data.result }));
+                const updates = { ai_note: data.result };
+        if (data.auto_approve === true) {
+          updates.status = 'confirmed';
+        }
+        await supabase.from('bookings').update(updates).eq('id', b.id);
+        if (onRefresh) onRefresh();
+
       }
     } catch (err) {
       alert('تعذر فحص الوصل: ' + err.message);
@@ -734,7 +741,69 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                 <div style={{ fontSize: 13, color: '#475569', marginTop: 2 }}>
                   📞 {b.client_phone}
                 </div>
-               
+                                   {(() => {
+                      const plan = String(provider.plan_type || 'trial').toLowerCase();
+                      const isExpired = provider.plan_expires_at ? new Date() > new Date(provider.plan_expires_at) : false;
+                      const hasAiAccess = !isExpired && (plan === 'premium' || plan === 'trial');
+                      const aiSummary = receiptReports[b.id] || b.ai_note;
+                      const isAutoApproved = b.status === 'confirmed' && aiSummary && aiSummary.includes('✅');
+
+                      return (
+                        <>
+                          {b.receipt_url && (
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                              <a
+                                href={b.receipt_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{ background: '#f1f5f9', color: '#0f172a', border: '1px solid #cbd5e1', padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}
+                              >
+                                عرض وصل الدفع ↗
+                              </a>
+
+                              {hasAiAccess ? (
+                                <button
+                                  type="button"
+                                  disabled={checkingReceiptId === b.id}
+                                  onClick={() => handleVerifyReceiptAI(b)}
+                                  style={{ background: '#7c3aed', color: '#fff', border: 'none', padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                                >
+                                  {checkingReceiptId === b.id ? 'جاري الفحص...' : 'إعادة فحص بالذكاء الاصطناعي 🤖'}
+                                </button>
+                              ) : (
+                                <span style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', padding: '7px 10px', borderRadius: 10, fontSize: 11, fontWeight: 700 }}>
+                                  👑 الفحص الذكي التلقائي متاح في Premium
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {aiSummary && (
+                            <div
+                              style={{
+                                marginTop: 8,
+                                padding: '10px 12px',
+                                borderRadius: 10,
+                                fontSize: 12,
+                                lineHeight: 1.6,
+                                fontWeight: 700,
+                                background: isAutoApproved ? '#f0fdf4' : '#fef2f2',
+                                border: isAutoApproved ? '1px solid #86efac' : '1px solid #fca5a5',
+                                color: isAutoApproved ? '#166534' : '#991b1b'
+                              }}
+                            >
+                              <div style={{ fontSize: 11, marginBottom: 3, opacity: 0.9 }}>
+                                {isAutoApproved
+                                  ? '🤖 تم الفحص والتأكيد تلقائياً بواسطة الذكاء الاصطناعي:'
+                                  : '⚠️ نتيجة فحص الذكاء الاصطناعي (سبب عدم القبول التلقائي):'}
+                              </div>
+                              <div>{aiSummary}</div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+
                 <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
                   {b.status !== 'confirmed' && (
                     <button
