@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
+import ChatBotWidget from './ChatBotWidget.jsx';
 import BookingPage from './BookingPage.jsx';
 import DashboardPage from './DashboardPage.jsx';
 import RegisterPage from './RegisterPage.jsx';
@@ -578,6 +579,7 @@ export default function App() {
           )}
         </>
       )}
+            <ChatBotWidget allProviders={allProviders} allServices={allServices} />
     </div>
   );
 }
