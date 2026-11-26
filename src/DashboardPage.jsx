@@ -1030,8 +1030,11 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
                       </button>
                     );
                   })}
-                </div>
-              </div>
+                     </div>
+    </div>
+  );
+}
+
 
               <div style={sectionCard}>
                 <strong style={{ display: 'block', marginBottom: 10, fontSize: 14, color: '#1e3a8a' }}>👤 تعديل بيانات الحساب:</strong>
@@ -1057,7 +1060,9 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
             </form>
           </>
         )}
+          </div>
     </div>
   );
 }
+
 
