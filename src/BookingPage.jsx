@@ -353,8 +353,19 @@ export default function BookingPage({ provider, services, reviews = [], onSucces
     return (
       <div style={{ ...pageFont, maxWidth: 460, margin: '20px auto', background: '#fff', padding: 24, borderRadius: 20, boxShadow: '0 10px 25px rgba(0,0,0,0.06)', textAlign: 'center' }}>
         <div style={{ width: 64, height: 64, background: '#dcfce7', color: '#16a34a', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, margin: '0 auto 12px' }}>✓</div>
-        
-
+                <h2 style={{ margin: '0 0 8px', color: '#15803d', fontWeight: 800 }}>
+          {bookedInfo.autoConfirmed ? '🎉 تم تأكيد حجزك تلقائياً!' : 'تم تسجيل طلب حجزك!'}
+        </h2>
+        <p style={{ color: '#475569', fontSize: 14, marginBottom: 14 }}>
+          {bookedInfo.autoConfirmed
+            ? 'تحقق النظام الذكي من وصل الدفع وتم تثبيت موعدك بنجاح. يمكنك إرسال نسخه لصاحب المشروع عبر واتساب:'
+            : 'وصل طلبك لصاحب المشروع للمراجعة. اضغط على الزر الأخضر لإرسال تفاصيل حجزك عبر واتساب:'}
+        </p>
+        {bookedInfo.aiReport && (
+          <div style={{ background: bookedInfo.autoConfirmed ? '#f0fdf4' : '#fffbeb', border: bookedInfo.autoConfirmed ? '1px solid #86efac' : '1px solid #fde047', borderRadius: 10, padding: '8px 12px', fontSize: 12, color: '#0f172a', marginBottom: 14, fontWeight: 700 }}>
+            {bookedInfo.aiReport}
+          </div>
+        )} 
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 14, padding: 14, textAlign: 'right', fontSize: 13, marginBottom: 18, lineHeight: 1.8 }}>
           <div><strong>الاسم:</strong> {bookedInfo.clientName}</div>
           <div><strong>الخدمة:</strong> {bookedInfo.serviceTitle}</div>
