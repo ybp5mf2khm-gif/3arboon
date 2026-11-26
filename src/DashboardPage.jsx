@@ -21,7 +21,6 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
   const [copied, setCopied] = useState(false);
   const [updatingId, setUpdatingId] = useState(null);
 
-  // بيانات الإعدادات
   const [bizName, setBizName] = useState(provider.business_name || '');
   const [ownerName, setOwnerName] = useState(provider.owner_name || '');
   const [phone, setPhone] = useState(provider.phone || '');
@@ -38,7 +37,6 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
   );
   const [locating, setLocating] = useState(false);
   const [bio, setBio] = useState(provider.bio || '');
-  // حالات الذكاء الاصطناعي (8 مساعدين)
   const [improvingBio, setImprovingBio] = useState(false);
   const [checkingReceiptId, setCheckingReceiptId] = useState(null);
   const [receiptReports, setReceiptReports] = useState({});
@@ -66,7 +64,6 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
   const [testingReceptionist, setTestingReceptionist] = useState(false);
   const [receptionistAnswer, setReceptionistAnswer] = useState('');
 
-  // طرق الدفع وساعات العمل
   const initialPayments = (Array.isArray(provider.payment_methods) && provider.payment_methods.length > 0)
     ? provider.payment_methods
     : (provider.rib ? [{ bank: provider.bank_name || 'CIH Bank', account: provider.rib }] : []);
@@ -120,8 +117,6 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
     }
     window.open('https://wa.me?text=' + encodeURIComponent(textMsg), '_blank');
   };
-
-  // ==================== دوال الذكاء الاصطناعي (ai-assistant) ====================
 
   // 1. تحسين الوصف (improve_bio)
   const handleImproveBioAI = async () => {
@@ -690,6 +685,203 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
                 );
               })
             )}
+          </div>
+        )}
+        {/* ==================== 2. تبويب مساعدي الذكاء الاصطناعي ==================== */}
+        {tab === 'ai_tools' && (
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* 1. تحسين وصف المشروع */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+              <h3 className="font-extrabold text-slate-900">✨ 1. تحسين وصف المشروع</h3>
+              <p className="text-xs text-slate-500">يكتب وصفاً تسويقياً جذاباً ومقنعاً لصفحة الحجز الخاصة بك.</p>
+              <textarea
+                rows="2"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="اكتب نبذة قصيرة عن مشروعك..."
+                className="w-full border border-slate-300 rounded-xl p-2.5 text-sm"
+              />
+              <button
+                onClick={handleImproveBioAI}
+                disabled={improvingBio}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50"
+              >
+                {improvingBio ? 'جاري التحسين...' : 'تحسين الوصف الآن'}
+              </button>
+            </div>
+
+            {/* 2. صانع الإعلانات */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+              <h3 className="font-extrabold text-slate-900">📣 2. صانع إعلانات واتساب وإنستغرام</h3>
+              <p className="text-xs text-slate-500">يولّد نصاً إعلانياً بالدارجة المغربية مع خدماتك ورابط حجزك المباشر.</p>
+              <button
+                onClick={handleGenerateAdAI}
+                disabled={generatingAd}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50"
+              >
+                {generatingAd ? 'جاري كتابة الإعلان...' : 'توليد إعلان ترويجي'}
+              </button>
+              {generatedAdText && (
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+                  <pre className="whitespace-pre-wrap font-sans text-xs text-slate-800">{generatedAdText}</pre>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(generatedAdText)}
+                    className="text-xs font-bold text-emerald-700 hover:underline"
+                  >
+                    📋 نسخ نص الإعلان
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 3. مستشار تحليل الأداء والأرباح */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+              <h3 className="font-extrabold text-slate-900">📊 3. مستشار تحليل الأرباح والمواعيد</h3>
+              <p className="text-xs text-slate-500">يحلل حجوزاتك ومداخيلك ويقدم 3 نصائح عملية لزيادة أرباحك.</p>
+              <button
+                onClick={handleAnalyzeStatsAI}
+                disabled={analyzingStats}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50"
+              >
+                {analyzingStats ? 'جاري التحليل...' : 'تحليل إحصائياتي الآن'}
+              </button>
+              {statsAdvice && (
+                <pre className="whitespace-pre-wrap font-sans bg-emerald-50 text-emerald-950 p-3 rounded-xl text-xs border border-emerald-200">
+                  {statsAdvice}
+                </pre>
+              )}
+            </div>
+
+            {/* 4. ملخص تقييمات الزبناء */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+              <h3 className="font-extrabold text-slate-900">⭐ 4. ملخص تقييمات الزبناء</h3>
+              <p className="text-xs text-slate-500">يلخص آراء زبنائك في سطرين (نقاط القوة ونقاط التحسين).</p>
+              <button
+                onClick={handleSummarizeReviewsAI}
+                disabled={summarizingReviews}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50"
+              >
+                {summarizingReviews ? 'جاري التلخيص...' : 'تلخيص التقييمات'}
+              </button>
+              {reviewsSummary && (
+                <div className="bg-slate-50 p-3 rounded-xl text-xs border border-slate-200 whitespace-pre-wrap">
+                  {reviewsSummary}
+                </div>
+              )}
+            </div>
+            {/* 5. مقترح الخدمات والأسعار */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+              <h3 className="font-extrabold text-slate-900">💡 5. مقترح الخدمات والعربون</h3>
+              <input
+                type="text"
+                value={businessCategory}
+                onChange={(e) => setBusinessCategory(e.target.value)}
+                placeholder="نوع المشروع (مثال: صالون تجميل، عيادة...)"
+                className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm"
+              />
+              <button
+                onClick={handleSuggestServicesAI}
+                disabled={suggestingServices}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50"
+              >
+                {suggestingServices ? 'جاري الاقتراح...' : 'اقترح 5 خدمات مع الأسعار'}
+              </button>
+              {suggestedServicesList.length > 0 && (
+                <div className="space-y-2 pt-2">
+                  {suggestedServicesList.map((srv, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs">
+                      <div>
+                        <p className="font-bold text-slate-900">{srv.title}</p>
+                        <p className="text-slate-500">الثمن: {srv.total_price} درهم | العربون: {srv.deposit_amount} درهم</p>
+                      </div>
+                      <button
+                        onClick={() => handleAddSuggestedService(srv)}
+                        disabled={saving}
+                        className="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg hover:bg-emerald-700"
+                      >
+                        + إضافة
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 6. رسالة استرجاع الزبناء */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+              <h3 className="font-extrabold text-slate-900">💌 6. رسالة استرجاع زبون سابق</h3>
+              <div className="grid grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  placeholder="اسم الزبون"
+                  value={retentionClientName}
+                  onChange={(e) => setRetentionClientName(e.target.value)}
+                  className="border border-slate-300 rounded-xl px-2.5 py-2 text-xs"
+                />
+                <input
+                  type="tel"
+                  placeholder="رقم واتساب"
+                  value={retentionClientPhone}
+                  onChange={(e) => setRetentionClientPhone(e.target.value)}
+                  className="border border-slate-300 rounded-xl px-2.5 py-2 text-xs"
+                />
+                <input
+                  type="text"
+                  placeholder="آخر زيارة"
+                  value={retentionLastDate}
+                  onChange={(e) => setRetentionLastDate(e.target.value)}
+                  className="border border-slate-300 rounded-xl px-2.5 py-2 text-xs"
+                />
+              </div>
+              <button
+                onClick={handleRetentionMessageAI}
+                disabled={generatingRetention}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50"
+              >
+                {generatingRetention ? 'جاري الكتابة...' : 'توليد رسالة واتساب'}
+              </button>
+              {retentionMsg && (
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+                  <p className="text-xs text-slate-800 whitespace-pre-wrap">{retentionMsg}</p>
+                  {retentionClientPhone && (
+                    <a
+                      href={`https://wa.me{formatMoroccanPhone(retentionClientPhone)}?text=${encodeURIComponent(retentionMsg)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-block bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg"
+                    >
+                      إرسال عبر واتساب 📲
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 7. تجربة موظف الاستقبال الذكي */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3 md:col-span-2">
+              <h3 className="font-extrabold text-slate-900">🤖 7. تجربة موظف الاستقبال الذكي</h3>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={testQuestion}
+                  onChange={(e) => setTestQuestion(e.target.value)}
+                  placeholder="اكتب سؤالاً تجريبياً من زبون (مثال: شحال ثمن الخدمة وواش خاص عربون؟)"
+                  className="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-sm"
+                />
+                <button
+                  onClick={handleTestReceptionistAI}
+                  disabled={testingReceptionist}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2 rounded-xl text-sm disabled:opacity-50"
+                >
+                  {testingReceptionist ? '...' : 'اسأل'}
+                </button>
+              </div>
+              {receptionistAnswer && (
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-950 p-3 rounded-xl text-xs">
+                  {receptionistAnswer}
+                </div>
+              )}
+            </div>
           </div>
         )}
         {/* ==================== 3. تبويب الخدمات ==================== */}
