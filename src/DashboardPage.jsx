@@ -583,26 +583,6 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
             >
               {t.label}
             </button>
-            <button
-  type="button"
-  onClick={() => setTab('ai')}
-  style={{
-    padding: '9px 14px',
-    borderRadius: 12,
-    border: 'none',
-    background: tab === 'ai' ? '#7c3aed' : '#fff',
-    color: tab === 'ai' ? '#fff' : '#475569',
-    fontWeight: 800,
-    fontSize: 12,
-    whiteSpace: 'nowrap',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
-  }}
->
-  🤖 الذكاء الاصطناعي
-</button>
-
           ))}
         </div>
 
