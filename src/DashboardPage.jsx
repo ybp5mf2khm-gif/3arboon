@@ -1057,7 +1057,6 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
             </form>
           </>
         )}
-      </div>
-    </div>
-  );
-}
+        </div>
+     );
+  }
