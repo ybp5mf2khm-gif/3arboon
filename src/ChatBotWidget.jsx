@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+React, { useState, useRef, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 
 const RobotAvatar = ({ size = 34 }) => (
@@ -358,7 +358,7 @@ export default function ChatBotWidget({
       ]);
     }
   };
-  const finalizeDirectBooking = async (phoneText) => {
+  const askForReceipt = (phoneText) => {
     const prov = bookingDraft.provider;
     const srv = bookingDraft.service;
     const cleanPhone = String(phoneText || '').trim();
@@ -366,6 +366,51 @@ export default function ChatBotWidget({
     if (!prov || !srv || !bookingDraft.date || !bookingDraft.time || !bookingDraft.clientName) {
       return;
     }
+
+    const paymentList = (Array.isArray(prov.payment_methods) && prov.payment_methods.length > 0)
+      ? prov.payment_methods
+      : (prov.rib ? [{ bank: prov.bank_name || 'CIH Bank', account: prov.rib }] : []);
+
+    const ribText = paymentList.length > 0
+      ? '\n💳 حسابات التحويل المتاحة:\n' +
+        paymentList.map((pm) => '• ' + pm.bank + ': ' + pm.account).join('\n')
+      : '';
+
+    setBookingDraft((prev) => ({
+      ...prev,
+      step: 'upload_receipt',
+      clientPhone: cleanPhone
+    }));
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: 'bot',
+        text:
+          '💰 خطوة أخيرة لتأكيد حجزك في ' + prov.business_name + ':\n' +
+          'يرجى تحويل مبلغ العربون (' + srv.deposit_amount + ' درهم)' +
+          ribText +
+          '\n\nثم ارفع صورة وصل التحويل هنا ليتحقق منه النظام فوراً 👇',
+        choices: [{ type: 'cancel_booking', label: '✕ إلغاء الحجز', value: null }],
+        matchedProvs: [],
+        requireReceiptUpload: true
+      }
+    ]);
+  };
+
+  const handleReceiptUploadAndSave = async (file) => {
+    if (!file || sending) return;
+    const prov = bookingDraft.provider;
+    const srv = bookingDraft.service;
+
+    if (!prov || !srv || !bookingDraft.date || !bookingDraft.time || !bookingDraft.clientName || !bookingDraft.clientPhone) {
+      return;
+    }
+
+    setMessages((prev) => [
+      ...prev,
+      { role: 'user', text: '📎 تم اختيار صورة الوصل: ' + file.name, choices: [], matchedProvs: [] }
+    ]);
 
     setSending(true);
     try {
@@ -392,26 +437,24 @@ export default function ChatBotWidget({
         return;
       }
 
+      const ext = file.name.split('.').pop() || 'jpg';
+      const fileName = Date.now() + '.' + ext;
+      const { error: upErr } = await supabase.storage.from('receipts').upload(fileName, file);
+      if (upErr) throw upErr;
+
+      const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(fileName);
+
       const { error: insErr } = await supabase.from('bookings').insert([{
         provider_id: prov.id,
         service_id: srv.id,
         client_name: bookingDraft.clientName,
-        client_phone: cleanPhone,
+        client_phone: bookingDraft.clientPhone,
         booking_date: bookingDraft.date,
         booking_time: bookingDraft.time,
-        receipt_url: ''
+        receipt_url: urlData.publicUrl
       }]);
 
       if (insErr) throw insErr;
-
-      const paymentList = (Array.isArray(prov.payment_methods) && prov.payment_methods.length > 0)
-        ? prov.payment_methods
-        : (prov.rib ? [{ bank: prov.bank_name || 'CIH Bank', account: prov.rib }] : []);
-
-      const ribText = paymentList.length > 0
-        ? '\n💳 حساب تحويل العربون (' + srv.deposit_amount + ' درهم):\n' +
-          paymentList.map((pm) => '• ' + pm.bank + ': ' + pm.account).join('\n')
-        : '\n💰 مبلغ العربون: ' + srv.deposit_amount + ' درهم';
 
       const rawWa = String(prov.phone || '').replace(/\D/g, '');
       let waPhone = rawWa;
@@ -419,7 +462,7 @@ export default function ChatBotWidget({
       else if (waPhone && !waPhone.startsWith('212')) waPhone = '212' + waPhone;
 
       const waMsg =
-        'مرحبا ' + prov.business_name + '، حجزت موعداً عبر روبوت 3arboon:\n' +
+        'مرحبا ' + prov.business_name + '، حجزت موعداً عبر روبوت 3arboon ورفعت وصل التحويل:\n' +
         'الاسم: ' + bookingDraft.clientName + '\n' +
         'الخدمة: ' + srv.title + '\n' +
         'الموعد: ' + bookingDraft.date + ' الساعة ' + bookingDraft.time + '\n' +
@@ -432,12 +475,11 @@ export default function ChatBotWidget({
         {
           role: 'bot',
           text:
-            '✅ تم تسجيل حجزك بنجاح!\n' +
+            '✅ تم رفع الوصل وتسجيل حجزك بنجاح!\n' +
             '🏪 المحل: ' + prov.business_name + '\n' +
             '✨ الخدمة: ' + srv.title + '\n' +
-            '📅 الموعد: ' + bookingDraft.date + ' على الساعة ' + bookingDraft.time +
-            ribText +
-            '\n\nأرسل وصل التحويل عبر واتساب لتأكيد موعدك نهائياً 👇',
+            '📅 الموعد: ' + bookingDraft.date + ' على الساعة ' + bookingDraft.time + '\n' +
+            '🔍 تم إرسال الوصل للنظام للتحقق منه. يمكنك أيضاً إشعار المحل عبر واتساب 👇',
           choices: [],
           matchedProvs: [],
           waUrl
@@ -460,9 +502,10 @@ export default function ChatBotWidget({
         ...prev,
         {
           role: 'bot',
-          text: '⚠️ حدث خطأ أثناء حفظ الحجز: ' + err.message,
+          text: '⚠️ حدث خطأ أثناء رفع الوصل وحفظ الحجز: ' + err.message,
           choices: [],
-          matchedProvs: []
+          matchedProvs: [],
+          requireReceiptUpload: true
         }
       ]);
     } finally {
@@ -497,7 +540,7 @@ export default function ChatBotWidget({
         ...prev,
         {
           role: 'bot',
-          text: 'تشرفنا بك يا ' + q + '! 📱 اكتب الآن رقم هاتفك (واتساب) لتأكيد الحجز:',
+          text: 'تشرفنا بك يا ' + q + '! 📱 اكتب الآن رقم هاتفك (واتساب) للمتابعة:',
           choices: [{ type: 'cancel_booking', label: '✕ إلغاء', value: null }],
           matchedProvs: []
         }
@@ -514,7 +557,20 @@ export default function ChatBotWidget({
         ]);
         return;
       }
-      await finalizeDirectBooking(q);
+      askForReceipt(q);
+      return;
+    }
+
+    if (bookingDraft.step === 'upload_receipt') {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'bot',
+          text: '📎 يرجى الضغط على الزر الأزرق أعلاه لاختيار صورة وصل التحويل من جهازك لإتمام الحجز.',
+          choices: [{ type: 'cancel_booking', label: '✕ إلغاء الحجز', value: null }],
+          matchedProvs: []
+        }
+      ]);
       return;
     }
 
@@ -621,7 +677,7 @@ export default function ChatBotWidget({
         ...prev,
         {
           role: 'bot',
-          text: '💡 طريقة الحجز في 3arboon بسيطة جداً:\n1️⃣ اختر المحل والخدمة.\n2️⃣ حدد اليوم والساعة المتاحة.\n3️⃣ حوّل مبلغ العربون البسيط لحساب المحل البنكي وأرسل صورة الوصل عبر واتساب لتأكيد موعدك فوراً!',
+          text: '💡 طريقة الحجز في 3arboon بسيطة جداً:\n1️⃣ اختر المحل والخدمة.\n2️⃣ حدد اليوم والساعة المتاحة.\n3️⃣ حوّل مبلغ العربون البسيط لحساب المحل البنكي وارفع صورة الوصل هنا ليتحقق منه النظام فوراً!',
           choices: [],
           matchedProvs: []
         }
@@ -806,6 +862,35 @@ export default function ChatBotWidget({
                   {m.text}
                 </div>
 
+                {m.requireReceiptUpload && bookingDraft.step === 'upload_receipt' && (
+                  <label
+                    style={{
+                      display: 'block',
+                      marginTop: 8,
+                      background: '#2563eb',
+                      color: '#fff',
+                      textAlign: 'center',
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      fontSize: 13,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      boxShadow: '0 3px 10px rgba(37, 99, 235, 0.25)'
+                    }}
+                  >
+                    📎 اضغط هنا لرفع صورة الوصل
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const chosenFile = e.target.files && e.target.files.item(0);
+                        if (chosenFile) handleReceiptUploadAndSave(chosenFile);
+                      }}
+                    />
+                  </label>
+                )}
+
                 {Array.isArray(m.choices) && m.choices.length > 0 && (
                   <div style={{ marginTop: 7, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {m.choices.map((ch, cIdx) => (
@@ -849,10 +934,9 @@ export default function ChatBotWidget({
                       textDecoration: 'none'
                     }}
                   >
-                    إرسال الوصل عبر واتساب 💬
+                    إرسال إشعار عبر واتساب 💬
                   </a>
                 )}
-
                 {Array.isArray(m.matchedProvs) && m.matchedProvs.length > 0 && (
                   <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 5 }}>
                     {m.matchedProvs.map((mp) => (
@@ -896,7 +980,7 @@ export default function ChatBotWidget({
                   color: '#64748b'
                 }}
               >
-                3arboon يجهز الرد... ⚡
+                3arboon يرفع الوصل ويؤكد الحجز... ⚡
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -952,6 +1036,8 @@ export default function ChatBotWidget({
                   ? 'اكتب اسمك الكامل...'
                   : bookingDraft.step === 'enter_phone'
                   ? 'اكتب رقم واتساب (06...)...'
+                  : bookingDraft.step === 'upload_receipt'
+                  ? 'ارفع صورة الوصل من الزر أعلاه...'
                   : 'اكتب رسالتك لـ 3arboon...'
               }
               value={input}
