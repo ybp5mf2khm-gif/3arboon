@@ -1,12 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 
-const QUICK_QUESTIONS = [
-  'كيف أحجز موعداً في عربون؟',
-  'ما هي المحلات والصالونات المتوفرة؟',
-  'كيف أؤكد الحجز بالعربون؟'
-];
-
 const RobotAvatar = ({ size = 34 }) => (
   <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://w3.org">
     <line x1="32" y1="6" x2="32" y2="15" stroke="#93C5FD" strokeWidth="3.5" strokeLinecap="round" />
@@ -29,23 +23,52 @@ const RobotAvatar = ({ size = 34 }) => (
   </svg>
 );
 
-export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
+export default function ChatBotWidget({
+  allProviders = [],
+  allServices = [],
+  currentProvider = null,
+  currentServices = [],
+  onBookingCreated
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      role: 'bot',
-      text: 'مرحباً بك في منصة 3arboon 🇲🇦! أنا الروبوت المساعد، كيف يمكنني خدمتك اليوم؟ (يمكنك سحبي وتحريكي لأي مكان في الشاشة)',
-      matchedProvs: []
-    }
-  ]);
+  const [messages, setMessages] = useState([]);
 
-  const [pos, setPos] = useState({ x: 16, y: typeof window !== 'undefined' ? window.innerHeight - 86 : 550 });
+  const [bookingDraft, setBookingDraft] = useState({
+    step: 'idle',
+    provider: null,
+    service: null,
+    date: '',
+    time: '',
+    clientName: '',
+    clientPhone: ''
+  });
+
+  const [pos, setPos] = useState({
+    x: 16,
+    y: typeof window !== 'undefined' ? window.innerHeight - 86 : 550
+  });
   const isDraggingRef = useRef(false);
   const hasMovedRef = useRef(false);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const messagesEndRef = useRef(null);
+  useEffect(() => {
+    const welcomeText = currentProvider
+      ? 'مرحباً بك في ' + currentProvider.business_name + ' 👋! أنا روبوت الاستقبال الذكي الخاص بالمحل. كيف أساعدك؟ يمكنك طرح أي سؤال أو حجز موعدك مباشرة من هنا 👇'
+      : 'مرحباً بك في منصة 3arboon 🇲🇦! أنا الروبوت المساعد. اسألني عن أي محل أو خدمة، أو ابدأ حجز موعدك مباشرة 👇';
+
+    setMessages([{ role: 'bot', text: welcomeText, choices: [], matchedProvs: [] }]);
+    setBookingDraft({
+      step: 'idle',
+      provider: currentProvider || null,
+      service: null,
+      date: '',
+      time: '',
+      clientName: '',
+      clientPhone: ''
+    });
+  }, [currentProvider && currentProvider.id]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -67,10 +90,7 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
   const startDrag = (clientX, clientY) => {
     isDraggingRef.current = true;
     hasMovedRef.current = false;
-    dragOffsetRef.current = {
-      x: clientX - pos.x,
-      y: clientY - pos.y
-    };
+    dragOffsetRef.current = { x: clientX - pos.x, y: clientY - pos.y };
   };
 
   const onDrag = (clientX, clientY) => {
@@ -80,11 +100,9 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
     if (Math.abs(nextX - pos.x) > 4 || Math.abs(nextY - pos.y) > 4) {
       hasMovedRef.current = true;
     }
-    const maxX = window.innerWidth - 76;
-    const maxY = window.innerHeight - 76;
     setPos({
-      x: Math.min(Math.max(8, nextX), maxX),
-      y: Math.min(Math.max(8, nextY), maxY)
+      x: Math.min(Math.max(8, nextX), window.innerWidth - 76),
+      y: Math.min(Math.max(8, nextY), window.innerHeight - 76)
     });
   };
 
@@ -95,9 +113,9 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
   useEffect(() => {
     const handleMouseMove = (e) => onDrag(e.clientX, e.clientY);
     const handleTouchMove = (e) => {
-      if (isDraggingRef.current && e.touches[0]) {
+      if (isDraggingRef.current && e.touches && e.touches.length > 0) {
         e.preventDefault();
-        onDrag(e.touches[0].clientX, e.touches[0].clientY);
+        onDrag(e.touches.item(0).clientX, e.touches.item(0).clientY);
       }
     };
     const handleUp = () => endDrag();
@@ -114,8 +132,344 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
       window.removeEventListener('touchend', handleUp);
     };
   });
+  const getProviderServices = (prov) => {
+    if (!prov) return [];
+    if (currentProvider && String(currentProvider.id) === String(prov.id) && currentServices.length > 0) {
+      return currentServices;
+    }
+    return allServices.filter((s) => String(s.provider_id) === String(prov.id));
+  };
 
-    const sendMessage = async (textToSend) => {
+  const getAvailableSlotsForDate = async (prov, dateStr) => {
+    const defaultHours = (Array.isArray(prov.working_hours) && prov.working_hours.length > 0)
+      ? prov.working_hours
+      : ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'];
+
+    const weeklyOff = Array.isArray(prov.weekly_off) ? prov.weekly_off : [];
+    const closedDates = Array.isArray(prov.closed_dates) ? prov.closed_dates : [];
+
+    if (closedDates.includes(dateStr)) {
+      return { closed: true, slots: [] };
+    }
+    const dObj = new Date(dateStr + 'T12:00:00');
+    if (!isNaN(dObj.getTime()) && weeklyOff.includes(dObj.getDay())) {
+      return { closed: true, slots: [] };
+    }
+
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('booking_time')
+      .eq('provider_id', prov.id)
+      .eq('booking_date', dateStr)
+      .neq('status', 'rejected');
+
+    const taken = (!error && Array.isArray(data)) ? data.map((b) => b.booking_time) : [];
+    const free = defaultHours.filter((hr) => !taken.includes(hr));
+    return { closed: false, slots: free };
+  };
+
+  const startInteractiveBooking = (provOverride = null) => {
+    const targetProv = provOverride || currentProvider;
+
+    if (!targetProv) {
+      if (allProviders.length === 0) {
+        setMessages((prev) => [
+          ...prev,
+          { role: 'bot', text: 'لا توجد محلات مفعلة حالياً للحجز.', choices: [], matchedProvs: [] }
+        ]);
+        return;
+      }
+      setBookingDraft({
+        step: 'select_provider',
+        provider: null,
+        service: null,
+        date: '',
+        time: '',
+        clientName: '',
+        clientPhone: ''
+      });
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'bot',
+          text: 'بكل سرور! 🗓️ اختر المحل أو الصالون الذي تود الحجز فيه:',
+          choices: allProviders.map((p) => ({
+            type: 'provider',
+            label: '🏪 ' + p.business_name,
+            value: p
+          })),
+          matchedProvs: []
+        }
+      ]);
+      return;
+    }
+
+    const srvs = getProviderServices(targetProv);
+    if (srvs.length === 0) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'bot',
+          text: 'عذراً، ' + targetProv.business_name + ' لم يضف خدماته بعد.',
+          choices: [],
+          matchedProvs: []
+        }
+      ]);
+      return;
+    }
+
+    setBookingDraft({
+      step: 'select_service',
+      provider: targetProv,
+      service: null,
+      date: '',
+      time: '',
+      clientName: '',
+      clientPhone: ''
+    });
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: 'bot',
+        text: 'ممتاز! اختر الخدمة التي تريدها في ' + targetProv.business_name + ':',
+        choices: srvs.map((s) => ({
+          type: 'service',
+          label: '✨ ' + s.title + ' (' + (s.total_price || s.price || 0) + ' د.م | عربون ' + s.deposit_amount + ' د.م)',
+          value: s
+        })),
+        matchedProvs: []
+      }
+    ]);
+  };
+  const handleChoiceSelect = async (choice) => {
+    if (sending) return;
+
+    setMessages((prev) => [
+      ...prev,
+      { role: 'user', text: choice.label, choices: [], matchedProvs: [] }
+    ]);
+
+    if (choice.type === 'cancel_booking') {
+      setBookingDraft({
+        step: 'idle',
+        provider: currentProvider || null,
+        service: null,
+        date: '',
+        time: '',
+        clientName: '',
+        clientPhone: ''
+      });
+      setMessages((prev) => [
+        ...prev,
+        { role: 'bot', text: 'تم إلغاء عملية الحجز. كيف يمكنني مساعدتك؟', choices: [], matchedProvs: [] }
+      ]);
+      return;
+    }
+
+    if (choice.type === 'provider') {
+      startInteractiveBooking(choice.value);
+      return;
+    }
+
+    if (choice.type === 'service') {
+      const nextDays = [];
+      for (let i = 0; i < 5; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() + i);
+        const iso = d.toISOString().split('T').at(0);
+        const dayLabel = i === 0 ? 'اليوم (' + iso + ')' : i === 1 ? 'غداً (' + iso + ')' : iso;
+        nextDays.push({ type: 'date', label: '📅 ' + dayLabel, value: iso });
+      }
+
+      setBookingDraft((prev) => ({
+        ...prev,
+        step: 'select_date',
+        service: choice.value
+      }));
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'bot',
+          text: 'اختر تاريخ الموعد المناسب لك (أو اكتب التاريخ بصيغة YYYY-MM-DD):',
+          choices: [...nextDays, { type: 'cancel_booking', label: '✕ إلغاء الحجز', value: null }],
+          matchedProvs: []
+        }
+      ]);
+      return;
+    }
+
+    if (choice.type === 'date') {
+      setSending(true);
+      const { closed, slots } = await getAvailableSlotsForDate(bookingDraft.provider, choice.value);
+      setSending(false);
+
+      if (closed || slots.length === 0) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'bot',
+            text: closed
+              ? '🏖️ عذراً، المحل مغلق في يوم ' + choice.value + '. اختر يوماً آخر:'
+              : '🔒 جميع الأوقات محجوزة يوم ' + choice.value + '. اختر يوماً آخر:',
+            choices: [{ type: 'cancel_booking', label: '✕ إلغاء الحجز', value: null }],
+            matchedProvs: []
+          }
+        ]);
+        return;
+      }
+
+      setBookingDraft((prev) => ({
+        ...prev,
+        step: 'select_time',
+        date: choice.value
+      }));
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'bot',
+          text: 'الساعات المتاحة يوم ' + choice.value + ' ⏰ اختر الساعة:',
+          choices: [
+            ...slots.map((hr) => ({ type: 'time', label: '🕒 ' + hr, value: hr })),
+            { type: 'cancel_booking', label: '✕ إلغاء', value: null }
+          ],
+          matchedProvs: []
+        }
+      ]);
+      return;
+    }
+
+    if (choice.type === 'time') {
+      setBookingDraft((prev) => ({
+        ...prev,
+        step: 'enter_name',
+        time: choice.value
+      }));
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'bot',
+          text: 'رائع! الساعة ' + choice.value + ' محجوزة مبدئياً لك. ✍️ اكتب اسمك الكامل الآن:',
+          choices: [{ type: 'cancel_booking', label: '✕ إلغاء', value: null }],
+          matchedProvs: []
+        }
+      ]);
+    }
+  };
+  const finalizeDirectBooking = async (phoneText) => {
+    const prov = bookingDraft.provider;
+    const srv = bookingDraft.service;
+    const cleanPhone = String(phoneText || '').trim();
+
+    if (!prov || !srv || !bookingDraft.date || !bookingDraft.time || !bookingDraft.clientName) {
+      return;
+    }
+
+    setSending(true);
+    try {
+      const { data: existing } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('provider_id', prov.id)
+        .eq('booking_date', bookingDraft.date)
+        .eq('booking_time', bookingDraft.time)
+        .neq('status', 'rejected');
+
+      if (existing && existing.length > 0) {
+        setSending(false);
+        setBookingDraft((prev) => ({ ...prev, step: 'select_date', time: '' }));
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'bot',
+            text: '⚠️ عذراً، تم حجز هذه الساعة للتو! اكتب تاريخاً آخر أو اختر وقتاً جديداً.',
+            choices: [],
+            matchedProvs: []
+          }
+        ]);
+        return;
+      }
+
+      const { error: insErr } = await supabase.from('bookings').insert([{
+        provider_id: prov.id,
+        service_id: srv.id,
+        client_name: bookingDraft.clientName,
+        client_phone: cleanPhone,
+        booking_date: bookingDraft.date,
+        booking_time: bookingDraft.time,
+        receipt_url: ''
+      }]);
+
+      if (insErr) throw insErr;
+
+      const paymentList = (Array.isArray(prov.payment_methods) && prov.payment_methods.length > 0)
+        ? prov.payment_methods
+        : (prov.rib ? [{ bank: prov.bank_name || 'CIH Bank', account: prov.rib }] : []);
+
+      const ribText = paymentList.length > 0
+        ? '\n💳 حساب تحويل العربون (' + srv.deposit_amount + ' درهم):\n' +
+          paymentList.map((pm) => '• ' + pm.bank + ': ' + pm.account).join('\n')
+        : '\n💰 مبلغ العربون: ' + srv.deposit_amount + ' درهم';
+
+      const rawWa = String(prov.phone || '').replace(/\D/g, '');
+      let waPhone = rawWa;
+      if (waPhone.startsWith('0')) waPhone = '212' + waPhone.slice(1);
+      else if (waPhone && !waPhone.startsWith('212')) waPhone = '212' + waPhone;
+
+      const waMsg =
+        'مرحبا ' + prov.business_name + '، حجزت موعداً عبر روبوت 3arboon:\n' +
+        'الاسم: ' + bookingDraft.clientName + '\n' +
+        'الخدمة: ' + srv.title + '\n' +
+        'الموعد: ' + bookingDraft.date + ' الساعة ' + bookingDraft.time + '\n' +
+        'العربون: ' + srv.deposit_amount + ' درهم';
+
+      const waUrl = waPhone ? ('https://wa.me' + waPhone + '?text=' + encodeURIComponent(waMsg)) : null;
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'bot',
+          text:
+            '✅ تم تسجيل حجزك بنجاح!\n' +
+            '🏪 المحل: ' + prov.business_name + '\n' +
+            '✨ الخدمة: ' + srv.title + '\n' +
+            '📅 الموعد: ' + bookingDraft.date + ' على الساعة ' + bookingDraft.time +
+            ribText +
+            '\n\nأرسل وصل التحويل عبر واتساب لتأكيد موعدك نهائياً 👇',
+          choices: [],
+          matchedProvs: [],
+          waUrl
+        }
+      ]);
+
+      setBookingDraft({
+        step: 'idle',
+        provider: currentProvider || null,
+        service: null,
+        date: '',
+        time: '',
+        clientName: '',
+        clientPhone: ''
+      });
+
+      if (onBookingCreated) onBookingCreated();
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'bot',
+          text: '⚠️ حدث خطأ أثناء حفظ الحجز: ' + err.message,
+          choices: [],
+          matchedProvs: []
+        }
+      ]);
+    } finally {
+      setSending(false);
+    }
+  };
+  const sendMessage = async (textToSend) => {
     const q = String(textToSend || input).trim();
     if (!q || sending) return;
 
@@ -166,13 +520,11 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
 
     const lowerQ = q.toLowerCase();
 
-    // 1. نية الحجز المباشر (فوري)
     if (['حجز', 'احجز', 'موعد', 'رونديفو', 'rdv', 'نحجز', 'بغيت نحجز'].some((w) => lowerQ.includes(w))) {
       startInteractiveBooking(currentProvider);
       return;
     }
 
-    // 2. التحيات (فوري)
     if (['سلام', 'اهلا', 'أهلا', 'مرحبا', 'صباح', 'مساء', 'salam', 'bonjour', 'salut', 'hello', 'hi'].some((w) => lowerQ.includes(w)) && q.length <= 25) {
       const greetReply = currentProvider
         ? 'وعليكم السلام ورحمة الله! 👋 مرحباً بك في ' + currentProvider.business_name + '. كيف أساعدك اليوم؟ يمكنك السؤال عن الأسعار، أوقات العمل، أو الضغط على "احجز موعداً الآن".'
@@ -181,7 +533,6 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
       return;
     }
 
-    // 3. الأسعار والخدمات (فوري)
     if (['ثمن', 'أسعار', 'اسعار', 'سعر', 'خدمات', 'بشحال', 'شحال', 'prix', 'tarif', 'service'].some((w) => lowerQ.includes(w))) {
       if (currentProvider) {
         const srvs = getProviderServices(currentProvider);
@@ -212,7 +563,6 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
       }
     }
 
-    // 4. أوقات العمل (فوري)
     if (['وقت', 'أوقات', 'اوقات', 'ساعات', 'مفتوح', 'فوقاش', 'إمتى', 'امتى', 'horaire'].some((w) => lowerQ.includes(w))) {
       if (currentProvider) {
         const hrs = (Array.isArray(currentProvider.working_hours) && currentProvider.working_hours.length > 0)
@@ -231,7 +581,6 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
       }
     }
 
-    // 5. الموقع والعنوان (فوري)
     if (['فين', 'موقع', 'عنوان', 'خريطة', 'بلاصة', 'مقر', 'localisation', 'adresse', 'maps'].some((w) => lowerQ.includes(w))) {
       if (currentProvider) {
         const mapLink = currentProvider.google_maps_url
@@ -252,7 +601,6 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
       }
     }
 
-    // 6. المحلات المتوفرة في المنصة (فوري)
     if (!currentProvider && ['محلات', 'صالونات', 'مشاريع', 'قائمة', 'متوفرة', 'متاحة', 'بائعين'].some((w) => lowerQ.includes(w))) {
       if (allProviders.length > 0) {
         setMessages((prev) => [
@@ -268,7 +616,6 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
       }
     }
 
-    // 7. طريقة الحجز والدفع (فوري)
     if (['كيف', 'طريقة', 'دفع', 'بنك', 'تحويل', 'rib', 'نخلص'].some((w) => lowerQ.includes(w))) {
       setMessages((prev) => [
         ...prev,
@@ -282,7 +629,6 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
       return;
     }
 
-    // 8. الأسئلة الحرة الأخرى -> إرسال للذكاء الاصطناعي مع مهلة 6 ثوانٍ كحد أقصى
     setSending(true);
     try {
       const recentHistory = messages
@@ -328,9 +674,20 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
       setSending(false);
     }
   };
-
   const openLeft = typeof window !== 'undefined' && pos.x > window.innerWidth / 2;
   const openDown = typeof window !== 'undefined' && pos.y < 360;
+
+  const quickActions = currentProvider
+    ? [
+        { label: '📅 احجز موعداً الآن', action: () => startInteractiveBooking(currentProvider) },
+        { label: '💰 الأسعار والخدمات', action: () => sendMessage('ما هي الخدمات والأسعار؟') },
+        { label: '⏰ أوقات العمل', action: () => sendMessage('ما هي أوقات العمل؟') }
+      ]
+    : [
+        { label: '📅 احجز موعداً الآن', action: () => startInteractiveBooking(null) },
+        { label: '🏪 المحلات المتاحة', action: () => sendMessage('ما هي المحلات المتاحة؟') },
+        { label: '❓ كيف أحجز؟', action: () => sendMessage('كيف طريقة الحجز؟') }
+      ];
 
   return (
     <div
@@ -348,12 +705,16 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
         <div
           style={{
             position: 'fixed',
-            left: openLeft ? Math.max(12, pos.x - 250) : Math.min(pos.x, (typeof window !== 'undefined' ? window.innerWidth : 400) - 332),
-            top: openDown ? Math.min(pos.y + 72, (typeof window !== 'undefined' ? window.innerHeight : 700) - 430) : Math.max(12, pos.y - 435),
-            width: 320,
+            left: openLeft
+              ? Math.max(12, pos.x - 250)
+              : Math.min(pos.x, (typeof window !== 'undefined' ? window.innerWidth : 400) - 332),
+            top: openDown
+              ? Math.min(pos.y + 72, (typeof window !== 'undefined' ? window.innerHeight : 700) - 440)
+              : Math.max(12, pos.y - 445),
+            width: 324,
             maxWidth: 'calc(100vw - 24px)',
-            height: 420,
-            maxHeight: '72vh',
+            height: 430,
+            maxHeight: '75vh',
             background: '#fff',
             borderRadius: 22,
             boxShadow: '0 16px 40px rgba(15, 23, 42, 0.25)',
@@ -390,8 +751,12 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
                 <RobotAvatar size={30} />
               </div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: 0.3 }}>3arboon AI</div>
-                <div style={{ fontSize: 11, color: '#38bdf8' }}>● روبوت المساعدة الذكي</div>
+                <div style={{ fontWeight: 800, fontSize: 14 }}>
+                  {currentProvider ? currentProvider.business_name : '3arboon AI'}
+                </div>
+                <div style={{ fontSize: 11, color: '#38bdf8' }}>
+                  ● {currentProvider ? 'موظف الحجوزات الذكي' : 'مساعد منصة عربون'}
+                </div>
               </div>
             </div>
             <button
@@ -412,7 +777,6 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
               ✕
             </button>
           </div>
-
           <div
             style={{
               flex: 1,
@@ -425,7 +789,7 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
             }}
           >
             {messages.map((m, idx) => (
-              <div key={idx} style={{ alignSelf: m.role === 'user' ? 'flex-start' : 'flex-end', maxWidth: '85%' }}>
+              <div key={idx} style={{ alignSelf: m.role === 'user' ? 'flex-start' : 'flex-end', maxWidth: '88%' }}>
                 <div
                   style={{
                     background: m.role === 'user' ? '#2563eb' : '#fff',
@@ -441,28 +805,79 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
                 >
                   {m.text}
                 </div>
+
+                {Array.isArray(m.choices) && m.choices.length > 0 && (
+                  <div style={{ marginTop: 7, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {m.choices.map((ch, cIdx) => (
+                      <button
+                        key={cIdx}
+                        type="button"
+                        onClick={() => handleChoiceSelect(ch)}
+                        style={{
+                          background: ch.type === 'cancel_booking' ? '#fee2e2' : '#eff6ff',
+                          color: ch.type === 'cancel_booking' ? '#dc2626' : '#1d4ed8',
+                          border: ch.type === 'cancel_booking' ? '1px solid #fca5a5' : '1px solid #93c5fd',
+                          padding: '6px 10px',
+                          borderRadius: 10,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          fontFamily: 'inherit'
+                        }}
+                      >
+                        {ch.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {m.waUrl && (
+                  <a
+                    href={m.waUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: 'block',
+                      marginTop: 8,
+                      background: '#25D366',
+                      color: '#fff',
+                      textAlign: 'center',
+                      padding: '9px 12px',
+                      borderRadius: 10,
+                      fontSize: 13,
+                      fontWeight: 800,
+                      textDecoration: 'none'
+                    }}
+                  >
+                    إرسال الوصل عبر واتساب 💬
+                  </a>
+                )}
+
                 {Array.isArray(m.matchedProvs) && m.matchedProvs.length > 0 && (
                   <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 5 }}>
                     {m.matchedProvs.map((mp) => (
-                      <a
+                      <button
                         key={mp.id}
-                        href={'/?p=' + mp.slug}
+                        type="button"
+                        onClick={() => startInteractiveBooking(mp)}
                         style={{
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
                           background: '#16a34a',
                           color: '#fff',
-                          padding: '7px 10px',
+                          border: 'none',
+                          padding: '8px 10px',
                           borderRadius: 10,
                           fontSize: 12,
                           fontWeight: 700,
-                          textDecoration: 'none'
+                          cursor: 'pointer',
+                          fontFamily: 'inherit'
                         }}
                       >
                         <span>🏪 {mp.business_name}</span>
-                        <span>احجز الآن ←</span>
-                      </a>
+                        <span>احجز هنا مباشرة ←</span>
+                      </button>
                     ))}
                   </div>
                 )}
@@ -481,13 +896,13 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
                   color: '#64748b'
                 }}
               >
-                روبوت 3arboon يفكر... ⚡
+                3arboon يجهز الرد... ⚡
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          {messages.length <= 2 && (
+          {bookingDraft.step === 'idle' && (
             <div
               style={{
                 padding: '6px 10px',
@@ -499,15 +914,15 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
                 borderTop: '1px solid #e2e8f0'
               }}
             >
-              {QUICK_QUESTIONS.map((qq, i) => (
+              {quickActions.map((qa, i) => (
                 <button
                   key={i}
                   type="button"
-                  onClick={() => sendMessage(qq)}
+                  onClick={qa.action}
                   style={{
-                    background: '#fff',
-                    border: '1px solid #cbd5e1',
-                    color: '#1e3a8a',
+                    background: i === 0 ? '#16a34a' : '#fff',
+                    border: i === 0 ? '1px solid #15803d' : '1px solid #cbd5e1',
+                    color: i === 0 ? '#fff' : '#1e3a8a',
                     padding: '5px 10px',
                     borderRadius: 14,
                     fontSize: 11,
@@ -517,7 +932,7 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
                     flexShrink: 0
                   }}
                 >
-                  {qq}
+                  {qa.label}
                 </button>
               ))}
             </div>
@@ -532,7 +947,13 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
           >
             <input
               type="text"
-              placeholder="اسأل 3arboon..."
+              placeholder={
+                bookingDraft.step === 'enter_name'
+                  ? 'اكتب اسمك الكامل...'
+                  : bookingDraft.step === 'enter_phone'
+                  ? 'اكتب رقم واتساب (06...)...'
+                  : 'اكتب رسالتك لـ 3arboon...'
+              }
               value={input}
               onChange={(e) => setInput(e.target.value)}
               style={{
@@ -566,13 +987,12 @@ export default function ChatBotWidget({ allProviders = [], allServices = [] }) {
         </div>
       )}
 
-      {/* أيقونة الروبوت المدمجة القابلة للسحب */}
       <button
         type="button"
         onMouseDown={(e) => startDrag(e.clientX, e.clientY)}
         onTouchStart={(e) => {
-          if (e.touches && e.touches[0]) {
-            startDrag(e.touches[0].clientX, e.touches[0].clientY);
+          if (e.touches && e.touches.length > 0) {
+            startDrag(e.touches.item(0).clientX, e.touches.item(0).clientY);
           }
         }}
         onClick={() => {
