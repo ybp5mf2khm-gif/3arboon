@@ -74,7 +74,7 @@ export default function App() {
   useEffect(() => {
     loadData();
   }, []);
-  const handleAiDirectorySearch = async (e) => {
+    const handleAiDirectorySearch = async (e) => {
     e.preventDefault();
     const q = aiSearchQuery.trim();
     if (!q) {
@@ -83,14 +83,21 @@ export default function App() {
       return;
     }
 
-    const lowerQ = q.toLowerCase();
+    const stopWords = ['ابحث', 'عن', 'البحث', 'بغيت', 'فين', 'محل', 'بائع', 'صالون', 'خدمة', 'اريد', 'أريد'];
+    const keywords = q
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length >= 2 && !stopWords.includes(w));
+    const searchTerms = keywords.length > 0 ? keywords : [q.toLowerCase()];
+
     const directMatches = allProviders.filter((p) => {
       const pName = String(p.business_name || '').toLowerCase();
       const pBio = String(p.bio || '').toLowerCase();
       const pOwner = String(p.owner_name || '').toLowerCase();
       const pSrvs = allServices.filter((s) => s.provider_id === p.id);
-      const hasMatchingSrv = pSrvs.some((s) => String(s.title || '').toLowerCase().includes(lowerQ));
-      return pName.includes(lowerQ) || pBio.includes(lowerQ) || pOwner.includes(lowerQ) || hasMatchingSrv;
+      const srvsText = pSrvs.map((s) => String(s.title || '').toLowerCase()).join(' ');
+      const fullText = pName + ' ' + pBio + ' ' + pOwner + ' ' + srvsText;
+      return searchTerms.some((term) => fullText.includes(term));
     });
     setMatchedProviders(directMatches);
 
@@ -121,11 +128,11 @@ export default function App() {
         setAiSearchResult(data.result);
       }
     } catch (err) {
-      setAiSearchResult(
-        directMatches.length > 0
-          ? 'تم العثور على ' + directMatches.length + ' نتيجة مطابقة لبحثك بالأسفل:'
-          : 'تعذر البحث الذكي حالياً، تصفح القائمة بالأسفل.'
-      );
+      if (directMatches.length > 0) {
+        setAiSearchResult('✅ وجدنا ' + directMatches.length + ' نتيجة مطابقة لبحثك:');
+      } else {
+        setAiSearchResult('⚠️ لم يتم العثور على نتائج مطابقة لـ "' + q + '" (تأكد من الاسم أو تصفح القائمة بالأسفل).');
+      }
     } finally {
       setAiSearching(false);
     }
