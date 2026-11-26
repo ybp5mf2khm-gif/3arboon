@@ -3,8 +3,8 @@ import { supabase } from './supabaseClient';
 import StatsTab from './StatsTab';
 import HolidaysSection from './HolidaysSection';
 import PremiumTab from './PremiumTab';
+import AiToolsTab from './AiToolsTab';
 import SubscriptionBanner from './SubscriptionBanner';
-
 const ALL_HALF_HOURS = [];
 for (let h = 8; h <= 23; h++) {
   const hh = String(h).padStart(2, '0');
@@ -203,9 +203,9 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
   const handleAnalyzeStatsAI = async () => {
     setAnalyzingStats(true);
     try {
-      const confirmed = bookings.filter((b) => b.status === 'confirmed').length;
-      const cancelled = bookings.filter((b) => b.status === 'cancelled').length;
-      const summary = `إجمالي الحجوزات: ${bookings.length}، المؤكدة: ${confirmed}، الملغاة: ${cancelled}، عدد الخدمات: ${services.length}`;
+      const confirmed = .filter((b) => b.status === 'confirmed').length;
+      const cancelled = .filter((b) => b.status === 'cancelled').length;
+      const summary = `إجمالي الحجوزات: ${.length}، المؤكدة: ${confirmed}، الملغاة: ${cancelled}، عدد الخدمات: ${services.length}`;
       const { data, error } = await supabase.functions.invoke('ai-assistant', {
         body: {
           action: 'analyze_stats',
@@ -339,7 +339,7 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
       setAskingAI(false);
     }
   };
-  const upcomingReminders = bookings.filter((b) => {
+  const upcomingReminders = .filter((b) => {
     if (b.status !== 'confirmed' || b.reminder_sent) return false;
     if (!b.booking_date || !b.booking_time) return false;
     const apptTime = new Date(b.booking_date + 'T' + b.booking_time + ':00');
@@ -352,7 +352,7 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
   const handleSendReminder = async (b) => {
     setUpdatingId(b.id);
     const { data, error } = await supabase
-      .from('bookings')
+      .from('')
       .update({ reminder_sent: true })
       .eq('id', b.id)
       .select();
@@ -361,7 +361,7 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
 
     if (error) return alert('خطأ في قاعدة البيانات: ' + error.message);
     if (!data || data.length === 0) {
-      return alert('تعذر التحديث: تأكد من تفعيل صلاحية UPDATE في إعدادات RLS لجدول bookings في Supabase.');
+      return alert('تعذر التحديث: تأكد من تفعيل صلاحية UPDATE في إعدادات RLS لجدول  في Supabase.');
     }
 
     if (onRefresh) await onRefresh();
@@ -373,7 +373,7 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
   const updateStatus = async (b, newStatus) => {
     setUpdatingId(b.id);
     const { data, error } = await supabase
-      .from('bookings')
+      .from('')
       .update({ status: newStatus })
       .eq('id', b.id)
       .select();
@@ -382,7 +382,7 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
 
     if (error) return alert('خطأ في التحديث: ' + error.message);
     if (!data || data.length === 0) {
-      return alert('تعذر التحديث: تحقق من صلاحيات RLS لجدول bookings.');
+      return alert('تعذر التحديث: تحقق من صلاحيات RLS لجدول .');
     }
 
     if (onRefresh) await onRefresh();
@@ -582,6 +582,26 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
             >
               {t.label}
             </button>
+            <button
+  type="button"
+  onClick={() => setTab('ai')}
+  style={{
+    padding: '9px 14px',
+    borderRadius: 12,
+    border: 'none',
+    background: tab === 'ai' ? '#7c3aed' : '#fff',
+    color: tab === 'ai' ? '#fff' : '#475569',
+    fontWeight: 800,
+    fontSize: 12,
+    whiteSpace: 'nowrap',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
+  }}
+>
+  🤖 الذكاء الاصطناعي
+</button>
+
           ))}
         </div>
 
@@ -900,7 +920,8 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
         )}
 
         {tab === 'stats' && <StatsTab provider={provider} bookings={bookings} services={services} />}
-        {tab === 'premium' && <PremiumTab provider={provider} onRefresh={onRefresh} />}
+        {tab === 'ai' && <AiToolsTab provider={provider} bookings={bookings} services={services} onRefresh={onRefresh} />}
+      {tab === 'premium' && <PremiumTab provider={provider} onRefresh={onRefresh} />}
         {/* تبويب الإعدادات */}
         {tab === 'settings' && (
           <>
