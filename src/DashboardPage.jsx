@@ -435,7 +435,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             onClick={() => setTab('settings')}
             style={{ flex: 1, padding: '10px 6px', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 12, background: tab === 'settings' ? '#2563eb' : 'transparent', color: tab === 'settings' ? '#fff' : '#475569', cursor: 'pointer', fontFamily: 'inherit' }}
           >
-            الإعدادات ⚙️
+            ⚙️
           </button>
         </div>
 
@@ -535,11 +535,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
           </div>
         )}
 
----
-
-### الجزء 5 من 6: تبويب الخدمات + الإعدادات مع زر تحسين الوصف بالذكاء الاصطناعي
-
-```jsx
         {tab === 'services' && (
           <div>
             <form onSubmit={handleAddService} style={sectionCard}>
