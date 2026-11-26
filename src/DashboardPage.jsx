@@ -215,6 +215,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     const msg = 'مرحبا ' + b.client_name + '، نذكرك بموعدك اليوم في ' + provider.business_name + ' على الساعة ' + b.booking_time + '. نتشرف بحضورك!';
     window.location.assign(getWhatsAppUrl(b, msg));
   };
+
   const updateStatus = async (b, newStatus) => {
     setUpdatingId(b.id);
     const { data, error } = await supabase
@@ -238,7 +239,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
       alert('تم رفض الحجز بنجاح');
     }
   };
-
   const handleAddService = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -323,6 +323,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     alert('تم حفظ جميع التعديلات بنجاح ✅');
     onRefresh();
   };
+
   const pageFont = { fontFamily: "'Cairo', sans-serif", direction: 'rtl' };
 
   const inputStyle = {
@@ -381,7 +382,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             ))}
           </div>
         )}
-
         <div style={sectionCard}>
           <div style={{ fontSize: 12, color: '#1e3a8a', marginBottom: 6, fontWeight: 800 }}>
             🔗 رابط الحجز الخاص بزبائنك:
@@ -406,6 +406,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             </button>
           </div>
         </div>
+
         <div style={{ display: 'flex', gap: 6, marginBottom: 18, background: '#f1f5f9', padding: 5, borderRadius: 14 }}>
           <button
             onClick={() => setTab('bookings')}
@@ -534,12 +535,6 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             ))}
           </div>
         )}
-
----
-
-### الجزء 5 من 6: تبويب الخدمات + الإعدادات مع زر تحسين الوصف بالذكاء الاصطناعي
-
-```jsx
         {tab === 'services' && (
           <div>
             <form onSubmit={handleAddService} style={sectionCard}>
@@ -610,7 +605,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                 </div>
                 <input
                   type="text"
-                  placeholder="https://maps.google.com/..."
+                  placeholder="https://google.com..."
                   style={{ ...inputStyle, direction: 'ltr', textAlign: 'left' }}
                   value={googleMapsUrl}
                   onChange={(e) => {
@@ -669,7 +664,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                   </button>
                 </div>
               </div>
-                            <div style={sectionCard}>
+              <div style={sectionCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <strong style={{ fontSize: 14, color: '#1e3a8a' }}>⏰ أوقات العمل (كل 30 دقيقة):</strong>
                   <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 800 }}>{workingHours.length} وقت متاح</span>
