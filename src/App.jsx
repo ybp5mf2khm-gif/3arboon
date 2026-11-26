@@ -22,6 +22,10 @@ export default function App() {
   const [pinInput, setPinInput] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
 
+  const [aiSearchQuery, setAiSearchQuery] = useState('');
+  const [aiSearching, setAiSearching] = useState(false);
+  const [aiSearchResult, setAiSearchResult] = useState('');
+  const [matchedProviders, setMatchedProviders] = useState([]);
   const params = new URLSearchParams(window.location.search);
   const isAdminRoute = params.get('admin') === 'true';
   const slug = params.get('p');
@@ -57,14 +61,12 @@ export default function App() {
       setLoading(false);
       return;
     }
-    if (!slug) {
-      await loadDirectory();
-      setLoading(false);
-      return;
-    }
-    const { data: prov } = await supabase.from('providers').select('*').eq('slug', slug).single();
-    if (prov && prov.is_active) {
-      await loadProviderDetails(prov);
+    await loadDirectory();
+    if (slug) {
+      const { data: prov } = await supabase.from('providers').select('*').eq('slug', slug).single();
+      if (prov && prov.is_active) {
+        await loadProviderDetails(prov);
+      }
     }
     setLoading(false);
   };
@@ -72,6 +74,62 @@ export default function App() {
   useEffect(() => {
     loadData();
   }, []);
+  const handleAiDirectorySearch = async (e) => {
+    e.preventDefault();
+    const q = aiSearchQuery.trim();
+    if (!q) {
+      setAiSearchResult('');
+      setMatchedProviders([]);
+      return;
+    }
+
+    const lowerQ = q.toLowerCase();
+    const directMatches = allProviders.filter((p) => {
+      const pName = String(p.business_name || '').toLowerCase();
+      const pBio = String(p.bio || '').toLowerCase();
+      const pOwner = String(p.owner_name || '').toLowerCase();
+      const pSrvs = allServices.filter((s) => s.provider_id === p.id);
+      const hasMatchingSrv = pSrvs.some((s) => String(s.title || '').toLowerCase().includes(lowerQ));
+      return pName.includes(lowerQ) || pBio.includes(lowerQ) || pOwner.includes(lowerQ) || hasMatchingSrv;
+    });
+    setMatchedProviders(directMatches);
+
+    setAiSearching(true);
+    try {
+      const directorySummary = allProviders.length > 0
+        ? allProviders.map((p) => {
+            const pSrvs = allServices.filter((s) => s.provider_id === p.id);
+            const srvsStr = pSrvs.length > 0
+              ? pSrvs.map((s) => s.title + ' (' + s.total_price + ' درهم)').join('، ')
+              : 'خدمات متنوعة';
+            return '- اسم البائع/المحل: ' + p.business_name + ' | الوصف: ' + (p.bio || 'غير محدد') + ' | الخدمات: ' + srvsStr;
+          }).join('\n')
+        : 'لا توجد محلات مسجلة حالياً';
+
+      const { data, error } = await supabase.functions.invoke('ai-assistant', {
+        body: {
+          action: 'ask_receptionist',
+          businessName: 'منصة عربون - دليل البائعين والمحلات',
+          providerContext: 'قائمة جميع البائعين والمحلات المسجلة في منصة عربون:\n' + directorySummary,
+          question: q
+        }
+      });
+
+      if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
+      if (data && data.result) {
+        setAiSearchResult(data.result);
+      }
+    } catch (err) {
+      setAiSearchResult(
+        directMatches.length > 0
+          ? 'تم العثور على ' + directMatches.length + ' نتيجة مطابقة لبحثك بالأسفل:'
+          : 'تعذر البحث الذكي حالياً، تصفح القائمة بالأسفل.'
+      );
+    } finally {
+      setAiSearching(false);
+    }
+  };
 
   if (isAdminRoute) {
     return <AdminPage />;
@@ -109,7 +167,6 @@ export default function App() {
       setLoginLoading(false);
     }
   };
-
   const getProviderRating = (provId) => {
     const provRevs = allReviews.filter((r) => r.provider_id === provId);
     if (provRevs.length === 0) return { avg: 'جديد', count: 0 };
@@ -130,6 +187,7 @@ export default function App() {
     }
     return null;
   };
+
   const appFont = { fontFamily: "'Cairo', sans-serif", direction: 'rtl' };
 
   if (loading) {
@@ -155,8 +213,11 @@ export default function App() {
       </div>
     );
   }
-
   if (!slug && view === 'booking') {
+    const displayedProviders = (aiSearchQuery.trim() && matchedProviders.length > 0)
+      ? matchedProviders
+      : allProviders;
+
     return (
       <div style={{ ...appFont, padding: 12, maxWidth: 480, margin: '12px auto' }}>
         <div style={{ background: '#fff', borderRadius: 24, overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.07)' }}>
@@ -178,7 +239,7 @@ export default function App() {
               + أنشئ صفحة حجز لمشروعك مجاناً
             </button>
 
-            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
               <button
                 onClick={() => {
                   setIsUnlocked(false);
@@ -198,12 +259,77 @@ export default function App() {
             </div>
 
             {allProviders.length > 0 && (
-              <div style={{ marginBottom: 22 }}>
-                <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
-                  🏪 المشاريع والصالونات المتاحة ({allProviders.length}):
-                </h3>
+              <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 16, padding: 14, marginBottom: 18 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#5b21b6', marginBottom: 8 }}>
+                  🤖 مساعد البحث الذكي (ابحث عن بائع أو خدمة):
+                </div>
+                <form onSubmit={handleAiDirectorySearch} style={{ display: 'flex', gap: 6 }}>
+                  <input
+                    type="text"
+                    placeholder="مثال: ابحث عن موزع، تسويق، صالون..."
+                    value={aiSearchQuery}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setAiSearchQuery(val);
+                      if (!val.trim()) {
+                        setAiSearchResult('');
+                        setMatchedProviders([]);
+                      }
+                    }}
+                    style={{ flex: 2, padding: '10px 12px', borderRadius: 10, border: '1px solid #c4b5fd', background: '#fff', color: '#0f172a', fontSize: 13, fontFamily: 'inherit' }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={aiSearching}
+                    style={{ background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 10, padding: '0 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                  >
+                    {aiSearching ? 'جاري...' : 'بحث ✨'}
+                  </button>
+                </form>
 
-                {allProviders.map((p) => {
+                {aiSearchResult && (
+                  <div style={{ marginTop: 10, background: '#fff', border: '1px solid #e9d5ff', borderRadius: 10, padding: 10, fontSize: 13, color: '#1e293b', lineHeight: 1.6 }}>
+                    {aiSearchResult}
+                    {matchedProviders.length > 0 && (
+                      <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {matchedProviders.map((mp) => (
+                          <a
+                            key={mp.id}
+                            href={'/?p=' + mp.slug}
+                            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f0fdf4', border: '1px solid #86efac', color: '#166534', padding: '8px 12px', borderRadius: 8, fontWeight: 800, fontSize: 13, textDecoration: 'none' }}
+                          >
+                            <span>🏪 {mp.business_name}</span>
+                            <span>دخول للحجز ←</span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+            {displayedProviders.length > 0 && (
+              <div style={{ marginBottom: 22 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
+                    🏪 المشاريع والصالونات المتاحة ({displayedProviders.length}):
+                  </h3>
+                  {aiSearchQuery.trim() && matchedProviders.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAiSearchQuery('');
+                        setAiSearchResult('');
+                        setMatchedProviders([]);
+                      }}
+                      style={{ background: '#f1f5f9', border: 'none', color: '#475569', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}
+                    >
+                      عرض الكل
+                    </button>
+                  )}
+                </div>
+
+                {displayedProviders.map((p) => {
                   const pServices = allServices.filter((s) => s.provider_id === p.id);
                   const ratingObj = getProviderRating(p.id);
                   const mapsUrl = getMapsLink(p);
@@ -227,27 +353,26 @@ export default function App() {
                           <div>
                             <h4 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0f172a' }}>{p.business_name}</h4>
                             {mapsUrl ? (
-                            <a
-  href={mapsUrl}
-  style={{
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 5,
-    fontSize: 11,
-    fontWeight: 700,
-    color: '#1d4ed8',
-    background: '#eff6ff',
-    padding: '4px 9px',
-    borderRadius: 8,
-    textDecoration: 'none',
-    border: '1px solid #bfdbfe',
-    whiteSpace: 'nowrap'
-  }}
->
-  📍 الموقع على الخريطة ↗
-</a>
-
+                              <a
+                                href={mapsUrl}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  marginTop: 5,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  color: '#1d4ed8',
+                                  background: '#eff6ff',
+                                  padding: '4px 9px',
+                                  borderRadius: 8,
+                                  textDecoration: 'none',
+                                  border: '1px solid #bfdbfe',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                📍 الموقع على الخريطة ↗
+                              </a>
                             ) : (
                               <span style={{ display: 'inline-block', marginTop: 3, fontSize: 11, color: '#64748b' }}>
                                 📍 المغرب
@@ -297,7 +422,6 @@ export default function App() {
                 })}
               </div>
             )}
-
             <div style={{ background: '#f8fafc', padding: 16, borderRadius: 16, border: '1px solid #e2e8f0', textAlign: 'right' }}>
               <h4 style={{ margin: '0 0 10px', color: '#0f172a', fontSize: 15, fontWeight: 800 }}>كيف تعمل منصة عربون؟</h4>
               <div style={{ fontSize: 13, color: '#475569', display: 'flex', flexDirection: 'column', gap: 8, lineHeight: 1.6 }}>
@@ -317,6 +441,7 @@ export default function App() {
       </div>
     );
   }
+
   return (
     <div style={{ ...appFont, padding: 12 }}>
       {view === 'booking' ? (
