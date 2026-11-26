@@ -1,3 +1,31 @@
+import React, { useState, useEffect } from 'react';
+import { supabase } from './supabaseClient';
+import StatsTab from './StatsTab';
+import HolidaysSection from './HolidaysSection';
+import PremiumTab from './PremiumTab';
+import SubscriptionBanner from './SubscriptionBanner';
+
+const ALL_HALF_HOURS = [];
+for (let h = 8; h <= 23; h++) {
+  const hh = String(h).padStart(2, '0');
+  ALL_HALF_HOURS.push(hh + ':00');
+  ALL_HALF_HOURS.push(hh + ':30');
+}
+
+export default function DashboardPage({ provider, bookings = [], services = [], onRefresh }) {
+  const [tab, setTab] = useState('bookings');
+  const [title, setTitle] = useState('');
+  const [price, setPrice] = useState('');
+  const [deposit, setDeposit] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [updatingId, setUpdatingId] = useState(null);
+
+  const [bizName, setBizName] = useState(provider.business_name || '');
+  const [ownerName, setOwnerName] = useState(provider.owner_name || '');
+  const [phone, setPhone] = useState(provider.phone || '');
+  const [email, setEmail] = useState(provider.email || '');
+  const [pinCode, setPinCode] = useState(provider.pin_code || '');
   const [logoUrl, setLogoUrl] = useState(provider.logo_url || '');
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [googleMapsUrl, setGoogleMapsUrl] = useState(
