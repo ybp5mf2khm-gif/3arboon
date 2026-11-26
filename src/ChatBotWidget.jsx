@@ -509,6 +509,85 @@ export default function ChatBotWidget({
       const { error: upErr } = await supabase.storage.from('receipts').upload(fileName, file);
       if (upErr) throw upErr;
 
+      const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(fileName);
+      const receiptPublicUrl = urlData.publicUrl;
+
+      // التحقق من أهلية المحل للفحص التلقائي الذكي (Premium أو الشهر التجريبي المجاني)
+      const plan = String(prov.plan_type || 'trial').toLowerCase();
+      const isExpired = prov.plan_expires_at ? new Date() > new Date(prov.plan_expires_at) : false;
+      const canAutoVerify = !isExpired && (plan === 'premium' || plan === 'trial');
+
+      let bookingStatus = 'pending';
+      let aiReportText = '';
+
+      if (canAutoVerify) {
+        try {
+          const { data: aiRes, error: aiErr } = await supabase.functions.invoke('ai-assistant', {
+            body: {
+              action: 'verify_receipt',
+              receiptUrl: receiptPublicUrl,
+              expectedAmount: srv.deposit_amount || 0
+            }
+          });
+          if (!aiErr && aiRes) {
+            aiReportText = aiRes.result || '';
+            if (aiRes.auto_approve === true) {
+              bookingStatus = 'confirmed';
+            }
+          }
+        } catch {
+          // في حال تعذر الفحص التلقائي، يبقى pending للمراجعة اليدوية
+        }
+      }
+
+      const { error: insErr } = await supabase.from('bookings').insert([{
+        provider_id: prov.id,
+        service_id: srv.id,
+        client_name: bookingDraft.clientName,
+        client_phone: bookingDraft.clientPhone,
+        booking_date: bookingDraft.date,
+        booking_time: bookingDraft.time,
+        receipt_url: receiptPublicUrl,
+        status: bookingStatus
+      }]);
+
+      if (insErr) throw insErr;
+
+      const rawWa = String(prov.phone || '').replace(/\D/g, '');
+      let waPhone = rawWa;
+      if (waPhone.startsWith('0')) waPhone = '212' + waPhone.slice(1);
+      else if (waPhone && !waPhone.startsWith('212')) waPhone = '212' + waPhone;
+
+      const waMsg =
+        'مرحبا ' + prov.business_name + '، حجزت موعداً عبر روبوت 3arboon ورفعت وصل التحويل:\n' +
+        'الاسم: ' + bookingDraft.clientName + '\n' +
+        'الخدمة: ' + srv.title + '\n' +
+        'الموعد: ' + bookingDraft.date + ' الساعة ' + bookingDraft.time + '\n' +
+        'العربون: ' + srv.deposit_amount + ' درهم';
+
+      const waUrl = waPhone ? ('https://wa.me' + waPhone + '?text=' + encodeURIComponent(waMsg)) : null;
+
+      const statusHeader = bookingStatus === 'confirmed'
+        ? '🎉 تم التحقق من الوصل وتأكيد حجزك تلقائياً!'
+        : '✅ تم رفع الوصل وتسجيل طلب حجزك!';
+
+      const aiNoteLine = aiReportText ? ('\n🤖 ' + aiReportText + '\n') : '\n';
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'bot',
+          text:
+            statusHeader + aiNoteLine +
+            '🏪 المحل: ' + prov.business_name + '\n' +
+            '✨ الخدمة: ' + srv.title + '\n' +
+            '📅 الموعد: ' + bookingDraft.date + ' على الساعة ' + bookingDraft.time + '\n' +
+            'يمكنك أيضاً إشعار المحل عبر واتساب 👇',
+          choices: [],
+          matchedProvs: [],
+          waUrl
+        }
+      ]);
 
 
       setBookingDraft({
