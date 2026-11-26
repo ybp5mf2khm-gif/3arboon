@@ -226,72 +226,7 @@ export default function BookingPage({ provider, services, reviews = [], onSucces
     return false;
   })();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!date) return alert('اختر تاريخ الموعد');
-    if (isSelectedDateClosed) return alert('المحل مغلق في هذا اليوم (عطلة). اختر تاريخاً آخر.');
-    if (!time) return alert('اختر ساعة الموعد المتاحة');
-    if (!file) return alert('اختر صورة الوصل');
-
-    setLoading(true);
-    setMsg('جاري التحقق من الموعد وإرسال الطلب...');
-
-    try {
-      const { data: existing } = await supabase
-        .from('bookings')
-        .select('id')
-        .eq('provider_id', provider.id)
-        .eq('booking_date', date)
-        .eq('booking_time', time)
-        .neq('status', 'rejected');
-
-      if (existing && existing.length > 0) {
-        setBookedTimes((prev) => [...prev, time]);
-        setTime('');
-        setLoading(false);
-        setMsg('');
-        return alert('عذراً، هذا التوقيت تم حجزه للتو! يرجى اختيار ساعة أخرى متاحة.');
-      }
-
-      const ext = file.name.split('.').pop();
-      const fileName = Date.now() + '.' + ext;
-      const { error: upErr } = await supabase.storage.from('receipts').upload(fileName, file);
-      if (upErr) throw upErr;
-
-      const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(fileName);
-
-      const { error: insErr } = await supabase.from('bookings').insert([{
-        provider_id: provider.id,
-        service_id: serviceId,
-        client_name: name,
-        client_phone: phone,
-        booking_date: date,
-        booking_time: time,
-        receipt_url: urlData.publicUrl
-      }]);
-      if (insErr) throw insErr;
-
-      setBookedInfo({
-        clientName: name,
-        serviceTitle: selectedSrv ? selectedSrv.title : '',
-        depositAmount: selectedSrv ? selectedSrv.deposit_amount : '',
-        date,
-        time
-      });
-
-      setBookedTimes((prev) => [...prev, time]);
-      setMsg('');
-      setName('');
-      setPhone('');
-      setTime('');
-      setFile(null);
-      if (onSuccess) onSuccess();
-    } catch (err) {
-      setMsg('خطأ: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  
   const pageFont = { fontFamily: "'Cairo', sans-serif", direction: 'rtl' };
 
   const inputStyle = {
