@@ -28,12 +28,22 @@ export default function BookingPage({ provider, services, reviews = [], onSucces
   const [revComment, setRevComment] = useState('');
   const [sendingRev, setSendingRev] = useState(false);
 
+  const [question, setQuestion] = useState('');
+  const [askingReceptionist, setAskingReceptionist] = useState(false);
+  const [receptionistReply, setReceptionistReply] = useState('');
+
+  const [clientNeed, setClientNeed] = useState('');
+  const [matchingService, setMatchingService] = useState(false);
+  const [serviceMatchReply, setServiceMatchReply] = useState('');
+
+  const [summarizingReviews, setSummarizingReviews] = useState(false);
+  const [reviewsSummary, setReviewsSummary] = useState('');
   const selectedSrv = services.find((s) => String(s.id) === String(serviceId));
   const currentStep = (date && time) ? 3 : serviceId ? 2 : 1;
 
   useEffect(() => {
     const link = document.createElement('link');
-    link.href = ['https:', '', '://googleapis.com', 'css2?family=Cairo:wght@400;600;700;800&display=swap'].join('/');
+    link.href = 'https://googleapis.com';
     link.rel = 'stylesheet';
     document.head.appendChild(link);
   }, []);
@@ -74,8 +84,7 @@ export default function BookingPage({ provider, services, reviews = [], onSucces
     providerWaPhone = '212' + providerWaPhone;
   }
 
-  const waBase = ['https:', '', 'wa.me'].join('/');
-  const buildWhatsAppUrl = (text) => waBase + '/' + providerWaPhone + '?text=' + encodeURIComponent(text);
+  const buildWhatsAppUrl = (text) => 'https://wa.me' + providerWaPhone + '?text=' + encodeURIComponent(text);
 
   const inquiryWaText =
     'مرحبا ' + provider.business_name + '، أود الاستفسار بخصوص حجز موعد' +
@@ -88,12 +97,98 @@ export default function BookingPage({ provider, services, reviews = [], onSucces
     alert('تم نسخ رقم الحساب: ' + acc);
   };
 
-  const mapsBase = ['https:', '', '://google.com', '?q='].join('/');
   const mapsUrl = provider.google_maps_url
     ? provider.google_maps_url
     : (provider.latitude && provider.longitude
-      ? mapsBase + provider.latitude + ',' + provider.longitude
+      ? 'https://google.com' + provider.latitude + ',' + provider.longitude
       : null);
+  const servicesSummaryText = services.length > 0
+    ? services.map((s) => '- ' + s.title + ': الثمن ' + (s.total_price || s.price || 0) + ' درهم، العربون ' + s.deposit_amount + ' درهم').join('\n')
+    : 'لا توجد خدمات مسجلة حالياً';
+
+  const handleAskReceptionistAI = async (e) => {
+    e.preventDefault();
+    if (!question.trim()) return alert('اكتب سؤالك أولاً');
+    setAskingReceptionist(true);
+    try {
+      const contextInfo =
+        'اسم المحل: ' + (provider.business_name || '') + '\n' +
+        'معلومات المحل: ' + (provider.bio || 'غير متوفر') + '\n' +
+        'ساعات العمل المتاحة: ' + defaultHours.join(', ') + '\n' +
+        'طرق الدفع: ' + (paymentList.map((p) => p.bank).join('، ') || 'تحويل بنكي') + '\n' +
+        'الخدمات والأسعار:\n' + servicesSummaryText;
+
+      const { data, error } = await supabase.functions.invoke('ai-assistant', {
+        body: {
+          action: 'ask_receptionist',
+          businessName: provider.business_name,
+          providerContext: contextInfo,
+          question: question.trim()
+        }
+      });
+      if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
+      if (data && data.result) {
+        setReceptionistReply(data.result);
+      }
+    } catch (err) {
+      alert('تعذر الرد حالياً: ' + err.message);
+    } finally {
+      setAskingReceptionist(false);
+    }
+  };
+
+  const handleMatchServiceAI = async (e) => {
+    e.preventDefault();
+    if (!clientNeed.trim()) return alert('اكتب ما تحتاجه ليقترح لك الذكاء الاصطناعي الخدمة الأنسب');
+    setMatchingService(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-assistant', {
+        body: {
+          action: 'match_service',
+          businessName: provider.business_name,
+          clientNeed: clientNeed.trim(),
+          servicesList: servicesSummaryText
+        }
+      });
+      if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
+      if (data && data.result) {
+        setServiceMatchReply(data.result);
+      }
+    } catch (err) {
+      alert('تعذر ترشيح الخدمة: ' + err.message);
+    } finally {
+      setMatchingService(false);
+    }
+  };
+
+  const handleSummarizeReviewsAI = async () => {
+    if (reviews.length === 0) return;
+    setSummarizingReviews(true);
+    try {
+      const revText = reviews
+        .map((r) => '(' + (r.rating || 5) + '/5) ' + (r.comment || 'تقييم بدون تعليق'))
+        .join(' | ');
+
+      const { data, error } = await supabase.functions.invoke('ai-assistant', {
+        body: {
+          action: 'summarize_reviews',
+          businessName: provider.business_name,
+          reviewsList: revText
+        }
+      });
+      if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
+      if (data && data.result) {
+        setReviewsSummary(data.result);
+      }
+    } catch (err) {
+      alert('تعذر تلخيص التقييمات: ' + err.message);
+    } finally {
+      setSummarizingReviews(false);
+    }
+  };
   const avgRating = reviews.length > 0
     ? (reviews.reduce((sum, r) => sum + Number(r.rating || 5), 0) / reviews.length).toFixed(1)
     : null;
@@ -247,7 +342,6 @@ export default function BookingPage({ provider, services, reviews = [], onSucces
       </div>
     );
   }
-
   const firstLetter = String(provider.business_name || 'ع').trim().charAt(0);
   const isPremium = String(provider.plan_type || '').toLowerCase() === 'premium';
 
@@ -303,7 +397,7 @@ export default function BookingPage({ provider, services, reviews = [], onSucces
         </div>
       </div>
       <div style={{ padding: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22, background: '#f8fafc', padding: '12px 10px', borderRadius: 14, border: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, background: '#f8fafc', padding: '12px 10px', borderRadius: 14, border: '1px solid #e2e8f0' }}>
           {[
             { num: 1, label: 'الخدمة' },
             { num: 2, label: 'الموعد' },
@@ -328,8 +422,65 @@ export default function BookingPage({ provider, services, reviews = [], onSucces
           })}
         </div>
 
+        <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 14, padding: 12, marginBottom: 18 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#5b21b6', marginBottom: 6 }}>
+            🤖 موظف الاستقبال الذكي (اسأل عن المحل أو المواعيد):
+          </div>
+          <form onSubmit={handleAskReceptionistAI} style={{ display: 'flex', gap: 6 }}>
+            <input
+              type="text"
+              placeholder="مثال: واش كاينين فالعشية؟ شحال الثمن؟..."
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              style={{ ...inputStyle, margin: 0, flex: 2, padding: '8px 10px', fontSize: 13 }}
+            />
+            <button
+              type="submit"
+              disabled={askingReceptionist}
+              style={{ background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 10, padding: '0 12px', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+            >
+              {askingReceptionist ? 'جاري...' : 'اسأل ✨'}
+            </button>
+          </form>
+          {receptionistReply && (
+            <div style={{ marginTop: 8, background: '#fff', border: '1px solid #e9d5ff', borderRadius: 10, padding: 10, fontSize: 13, color: '#1e293b', lineHeight: 1.6 }}>
+              {receptionistReply}
+            </div>
+          )}
+        </div>
+
         <form onSubmit={handleSubmit}>
           <label style={{ display: 'block', fontWeight: 700, marginBottom: 8, fontSize: 14 }}>1. اختر الخدمة</label>
+
+          {services.length > 1 && (
+            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: 10, marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#1e40af', marginBottom: 6 }}>
+                💡 محتار شنو تختار؟ اكتب طلبك ونرشّح لك الخدمة المناسبة:
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  type="text"
+                  placeholder="مثال: بغيت تنظيف عميق للبشرة..."
+                  value={clientNeed}
+                  onChange={(e) => setClientNeed(e.target.value)}
+                  style={{ ...inputStyle, margin: 0, flex: 2, padding: '7px 10px', fontSize: 12 }}
+                />
+                <button
+                  type="button"
+                  disabled={matchingService}
+                  onClick={handleMatchServiceAI}
+                  style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '0 10px', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                >
+                  {matchingService ? 'جاري...' : 'رشّح لي ✨'}
+                </button>
+              </div>
+              {serviceMatchReply && (
+                <div style={{ marginTop: 8, background: '#fff', border: '1px solid #dbeafe', borderRadius: 8, padding: 8, fontSize: 12, color: '#0f172a', lineHeight: 1.6 }}>
+                  {serviceMatchReply}
+                </div>
+              )}
+            </div>
+          )}
           <div style={{ display: 'grid', gap: 10, marginBottom: 18 }}>
             {services.map((s) => {
               const isSelected = String(s.id) === String(serviceId);
@@ -478,11 +629,29 @@ export default function BookingPage({ provider, services, reviews = [], onSucces
             </a>
           </div>
         )}
-
         <div style={{ marginTop: 24, paddingTop: 18, borderTop: '2px dashed #e2e8f0' }}>
-          <h4 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 800, color: '#0f172a' }}>
-            ⭐ تقييمات الزبائن ({reviews.length})
-          </h4>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#0f172a' }}>
+              ⭐ تقييمات الزبائن ({reviews.length})
+            </h4>
+            {reviews.length >= 2 && (
+              <button
+                type="button"
+                disabled={summarizingReviews}
+                onClick={handleSummarizeReviewsAI}
+                style={{ background: '#7c3aed', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                {summarizingReviews ? 'جاري التلخيص...' : 'ملخص الآراء ✨'}
+              </button>
+            )}
+          </div>
+
+          {reviewsSummary && (
+            <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 10, padding: 10, marginBottom: 12, fontSize: 12, color: '#1e293b', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+              <strong style={{ color: '#5b21b6', display: 'block', marginBottom: 4 }}>✨ خلاصة تقييمات الزبائن:</strong>
+              {reviewsSummary}
+            </div>
+          )}
 
           <form onSubmit={handleAddReview} style={{ background: '#f8fafc', padding: 12, borderRadius: 12, border: '1px solid #e2e8f0', marginBottom: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a8a', marginBottom: 8 }}>أضف تقييمك للمحل:</div>
