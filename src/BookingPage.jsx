@@ -226,7 +226,107 @@ export default function BookingPage({ provider, services, reviews = [], onSucces
     return false;
   })();
 
-  
+    const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!date) return alert('اختر تاريخ الموعد');
+    if (isSelectedDateClosed) return alert('المحل مغلق في هذا اليوم (عطلة). اختر تاريخاً آخر.');
+    if (!time) return alert('اختر ساعة الموعد المتاحة');
+    if (!file) return alert('اختر صورة الوصل');
+
+    setLoading(true);
+    setMsg('جاري التحقق من الموعد ورفع الوصل...');
+
+    try {
+      const { data: existing } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('provider_id', provider.id)
+        .eq('booking_date', date)
+        .eq('booking_time', time)
+        .neq('status', 'rejected');
+
+      if (existing && existing.length > 0) {
+        setBookedTimes((prev) => [...prev, time]);
+        setTime('');
+        setLoading(false);
+        setMsg('');
+        return alert('عذراً، هذا التوقيت تم حجزه للتو! يرجى اختيار ساعة أخرى متاحة.');
+      }
+
+      const ext = file.name.split('.').pop();
+      const fileName = Date.now() + '.' + ext;
+      const { error: upErr } = await supabase.storage.from('receipts').upload(fileName, file);
+      if (upErr) throw upErr;
+
+      const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(fileName);
+      const receiptPublicUrl = urlData.publicUrl;
+
+      // التحقق مما إذا كان المحل مؤهلاً للفحص التلقائي الذكي (Premium أو الشهر التجريبي المجاني)
+      const plan = String(provider.plan_type || 'trial').toLowerCase();
+      const isExpired = provider.plan_expires_at ? new Date() > new Date(provider.plan_expires_at) : false;
+      const canAutoVerify = !isExpired && (plan === 'premium' || plan === 'trial');
+
+      let bookingStatus = 'pending';
+      let aiReportText = '';
+
+      if (canAutoVerify) {
+        setMsg('🤖 الذكاء الاصطناعي يفحص وصل الدفع الآن...');
+        try {
+          const { data: aiRes, error: aiErr } = await supabase.functions.invoke('ai-assistant', {
+            body: {
+              action: 'verify_receipt',
+              receiptUrl: receiptPublicUrl,
+              expectedAmount: selectedSrv ? selectedSrv.deposit_amount : 0
+            }
+          });
+          if (!aiErr && aiRes) {
+            aiReportText = aiRes.result || '';
+            if (aiRes.auto_approve === true) {
+              bookingStatus = 'confirmed';
+            }
+          }
+        } catch (aiCheckErr) {
+          // في حال تعذر الفحص التلقائي لأي سبب تقني، يبقى الحجز pending ليراجعه صاحب المحل بأمان
+          console.warn('Auto AI verify fallback to pending:', aiCheckErr);
+        }
+      }
+
+      const { error: insErr } = await supabase.from('bookings').insert([{
+        provider_id: provider.id,
+        service_id: serviceId,
+        client_name: name,
+        client_phone: phone,
+        booking_date: date,
+        booking_time: time,
+        receipt_url: receiptPublicUrl,
+        status: bookingStatus
+      }]);
+      if (insErr) throw insErr;
+
+      setBookedInfo({
+        clientName: name,
+        serviceTitle: selectedSrv ? selectedSrv.title : '',
+        depositAmount: selectedSrv ? selectedSrv.deposit_amount : '',
+        date,
+        time,
+        autoConfirmed: bookingStatus === 'confirmed',
+        aiReport: aiReportText
+      });
+
+      setBookedTimes((prev) => [...prev, time]);
+      setMsg('');
+      setName('');
+      setPhone('');
+      setTime('');
+      setFile(null);
+      if (onSuccess) onSuccess();
+    } catch (err) {
+      setMsg('خطأ: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const pageFont = { fontFamily: "'Cairo', sans-serif", direction: 'rtl' };
 
   const inputStyle = {
