@@ -63,14 +63,14 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
   const [askingAI, setAskingAI] = useState(false);
   const [aiReply, setAiReply] = useState('');
 
-  const initialPayments = (Array.isArray(provider.payment_methods) && provider.payment_methods.length > 0)
+  const initialPayments = (Array.isArray(provider.payment_methods) && provider.payment_methods> 0)
     ? provider.payment_methods
     : (provider.rib ? [{ bank: provider.bank_name || 'CIH Bank', account: provider.rib }] : []);
   const [paymentMethods, setPaymentMethods] = useState(initialPayments);
   const [newBank, setNewBank] = useState('CIH Bank');
   const [newAccount, setNewAccount] = useState('');
 
-  const initialHours = (Array.isArray(provider.working_hours) && provider.working_hours.length > 0)
+  const initialHours = (Array.isArray(provider.working_hours) && provider.working_hours> 0)
     ? provider.working_hours
     : ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'];
   const [workingHours, setWorkingHours] = useState(initialHours);
@@ -179,7 +179,7 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
   const handleGenerateAdAI = async () => {
     setGeneratingAd(true);
     try {
-      const servicesList = services.map((s) => `${s.title} (${s.total_price} درهم)`).join('، ');
+      const servicesList = services((s) => `${s.title} (${s.total_price} درهم)`).join('، ');
       const { data, error } = await supabase.functions.invoke('ai-assistant', {
         body: {
           action: 'generate_ad',
@@ -203,8 +203,8 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
   const handleAnalyzeStatsAI = async () => {
     setAnalyzingStats(true);
     try {
-          const confirmed = bookings.filter((b) => b.status === 'confirmed').length;
-      const cancelled = bookings.filter((b) => b.status === 'cancelled').length;
+          const confirmed = bookings((b) => b.status === 'confirmed').length;
+      const cancelled = bookings((b) => b.status === 'cancelled').length;
       const summary = `إجمالي الحجوزات: ${bookings.length}، المؤكدة: ${confirmed}، الملغاة: ${cancelled}، عدد الخدمات: ${services.length}`;
 
       const { data, error } = await supabase.functions.invoke('ai-assistant', {
@@ -233,8 +233,8 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
         .select('rating, comment')
         .eq('provider_id', provider.id);
 
-      const reviewsList = (revData && revData.length > 0)
-        ? revData.map((r) => `(${r.rating}/5): ${r.comment}`).join('\n')
+      const reviewsList = (revData && revData> 0)
+        ? revData((r) => `(${r.rating}/5): ${r.comment}`).join('\n')
         : 'لا توجد تقييمات مسجلة حالياً.';
 
       const { data, error } = await supabase.functions.invoke('ai-assistant', {
@@ -284,7 +284,7 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
         deposit_amount: Number(srv.deposit_amount)
       }]);
       if (error) throw error;
-      setSuggestedServices((prev) => prev.filter((item) => item.title !== srv.title));
+      setSuggestedServices((prev) => prev((item) => item.title !== srv.title));
       if (onRefresh) await onRefresh();
     } catch (err) {
       alert('خطأ أثناء إضافة الخدمة: ' + err.message);
@@ -322,7 +322,7 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
     if (!testQuestion.trim()) return;
     setAskingAI(true);
     try {
-      const providerContext = `المحل: ${bizName}. الوصف: ${bio}. الخدمات: ${services.map((s) => `${s.title} بـ ${s.total_price} درهم`).join('، ')}. أوقات العمل: ${workingHours.join('، ')}`;
+      const providerContext = `المحل: ${bizName}. الوصف: ${bio}. الخدمات: ${services((s) => `${s.title} بـ ${s.total_price} درهم`).join('، ')}. أوقات العمل: ${workingHours.join('، ')}`;
       const { data, error } = await supabase.functions.invoke('ai-assistant', {
         body: {
           action: 'ask_receptionist',
@@ -340,7 +340,7 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
       setAskingAI(false);
     }
   };
-  const upcomingReminders = .filter((b) => {
+  const upcomingReminders = bookings((b) => {
     if (b.status !== 'confirmed' || b.reminder_sent) return false;
     if (!b.booking_date || !b.booking_time) return false;
     const apptTime = new Date(b.booking_date + 'T' + b.booking_time + ':00');
@@ -361,7 +361,7 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
     setUpdatingId(null);
 
     if (error) return alert('خطأ في قاعدة البيانات: ' + error.message);
-    if (!data || data.length === 0) {
+    if (!data || data=== 0) {
       return alert('تعذر التحديث: تأكد من تفعيل صلاحية UPDATE في إعدادات RLS لجدول  في Supabase.');
     }
 
@@ -382,7 +382,7 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
     setUpdatingId(null);
 
     if (error) return alert('خطأ في التحديث: ' + error.message);
-    if (!data || data.length === 0) {
+    if (!data || data=== 0) {
       return alert('تعذر التحديث: تحقق من صلاحيات RLS لجدول .');
     }
 
@@ -469,7 +469,7 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
 
   const toggleWorkingHour = (hr) => {
     setWorkingHours((prev) =>
-      prev.includes(hr) ? prev.filter((h) => h !== hr) : [...prev, hr].sort()
+      prev.includes(hr) ? prev((h) => h !== hr) : [...prev, hr].sort()
     );
   };
 
@@ -480,7 +480,7 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
   };
 
   const removePaymentMethod = (idx) => {
-    setPaymentMethods((prev) => prev.filter((_, i) => i !== idx));
+    setPaymentMethods((prev) => prev((_, i) => i !== idx));
   };
 
   const handleSaveSettings = async (e) => {
@@ -562,7 +562,7 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
             { id: 'stats', label: '📊 الإحصائيات' },
             { id: 'settings', label: '⚙️ الإعدادات' },
             { id: 'premium', label: '👑 الاشتراك' }
-          ].map((t) => (
+          ]bookings((t) => (
             <button
               key={t.id}
               type="button"
@@ -607,10 +607,10 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
         </div>
 
         {/* تنبيهات التذكير بالواتساب */}
-        {upcomingReminders.length > 0 && (
+        {upcomingReminders> 0 && (
           <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 14, padding: 12, marginBottom: 14 }}>
             <strong style={{ display: 'block', fontSize: 13, color: '#92400e', marginBottom: 8 }}>⏰ مواعيد تقترب خلال ساعتين:</strong>
-            {upcomingReminders.map((b) => (
+            {upcomingReminders((b) => (
               <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '8px 10px', borderRadius: 10, border: '1px solid #fde68a', marginBottom: 6 }}>
                 <span style={{ fontSize: 12 }}><strong>{b.client_name}</strong> ({b.booking_time})</span>
                 <button
@@ -629,12 +629,12 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
         {/* تبويب الحجوزات */}
         {tab === 'bookings' && (
           <div>
-            {bookings.length === 0 ? (
+            {bookings=== 0 ? (
               <div style={{ background: '#fff', borderRadius: 16, padding: 30, textAlign: 'center', border: '1px solid #e2e8f0', color: '#64748b', fontSize: 14 }}>
                 لا توجد حجوزات مسجلة حالياً.
               </div>
             ) : (
-              bookings.map((b) => {
+              bookings((b) => {
                 const srv = services.find((s) => String(s.id) === String(b.service_id));
                 return (
                   <div key={b.id} style={{ background: '#fff', borderRadius: 16, padding: 16, border: '1px solid #e2e8f0', marginBottom: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
@@ -803,7 +803,7 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
               >
                 {suggestingServices ? 'جاري الاقتراح...' : 'اقترح 5 خدمات مع العربون ✨'}
               </button>
-              {suggestedServices.map((srv, idx) => (
+              {suggestedServices((srv, idx) => (
                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: 10, borderRadius: 10, border: '1px solid #cbd5e1', marginTop: 8 }}>
                   <div style={{ fontSize: 12 }}>
                     <strong style={{ display: 'block' }}>{srv.title}</strong>
@@ -902,7 +902,7 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
               </button>
             </form>
 
-            {services.map((s) => (
+            {services((s) => (
               <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #e2e8f0', background: '#f8fafc', padding: 12, borderRadius: 12, marginBottom: 10 }}>
                 <div>
                   <strong style={{ display: 'block', fontSize: 14, color: '#0f172a' }}>{s.title}</strong>
@@ -994,7 +994,7 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
 
               <div style={sectionCard}>
                 <strong style={{ display: 'block', marginBottom: 10, fontSize: 14, color: '#1e3a8a' }}>🏦 البنوك وطرق الدفع المتاحة:</strong>
-                {paymentMethods.map((pm, idx) => (
+                {paymentMethods((pm, idx) => (
                   <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '9px 12px', borderRadius: 10, border: '1px solid #cbd5e1', marginBottom: 8 }}>
                     <div style={{ fontSize: 13 }}>
                       <strong>{pm.bank}</strong>: <span style={{ direction: 'ltr', display: 'inline-block' }}>{pm.account}</span>
@@ -1029,7 +1029,7 @@ export default function DashboardPage({ provider, bookings = [], services = [], 
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, direction: 'ltr' }}>
-                  {ALL_HALF_HOURS.map((hr) => {
+                  {ALL_HALF_HOURS((hr) => {
                     const isSelected = workingHours.includes(hr);
                     return (
                       <button
