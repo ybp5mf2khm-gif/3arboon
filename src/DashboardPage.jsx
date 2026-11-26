@@ -734,26 +734,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                 <div style={{ fontSize: 13, color: '#475569', marginTop: 2 }}>
                   📞 {b.client_phone}
                 </div>
-                {b.receipt_url && (
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
-                    <a href={b.receipt_url} target="_blank" rel="noreferrer" style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', padding: '5px 10px', borderRadius: 8, textDecoration: 'none' }}>
-                      عرض وصل الدفع ↗
-                    </a>
-                    <button
-                      type="button"
-                      disabled={checkingReceiptId === b.id}
-                      onClick={() => handleVerifyReceiptAI(b)}
-                      style={{ background: '#7c3aed', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
-                    >
-                      {checkingReceiptId === b.id ? 'جاري الفحص...' : 'فحص بالذكاء الاصطناعي 🤖'}
-                    </button>
-                  </div>
-                )}
-                {receiptReports[b.id] && (
-                  <div style={{ marginTop: 8, padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, lineHeight: 1.6, background: receiptReports[b.id].startsWith('✅') ? '#f0fdf4' : '#fef2f2', border: receiptReports[b.id].startsWith('✅') ? '1px solid #86efac' : '1px solid #fca5a5', color: receiptReports[b.id].startsWith('✅') ? '#166534' : '#991b1b' }}>
-                    {receiptReports[b.id]}
-                  </div>
-                )}
+               
                 <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
                   {b.status !== 'confirmed' && (
                     <button
