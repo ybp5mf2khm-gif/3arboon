@@ -978,3 +978,79 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                   </button>
                 </div>
               </div>
+                        <div style={sectionCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <strong style={{ fontSize: 14, color: '#1e3a8a' }}>⏰ أوقات العمل (كل 30 دقيقة):</strong>
+                  <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 800 }}>{workingHours.length} وقت متاح</span>
+                </div>
+                <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 10px' }}>
+                  اضغط على الساعة لتفعيلها (أخضر) أو إغلاقها (أبيض):
+                </p>
+
+                <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+                  <button type="button" onClick={() => selectPresetHours('day')} style={{ flex: 1, padding: '7px 4px', fontSize: 11, borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>
+                    نهاري (09-19:30)
+                  </button>
+                  <button type="button" onClick={() => selectPresetHours('evening')} style={{ flex: 1, padding: '7px 4px', fontSize: 11, borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>
+                    مسائي (14-23:00)
+                  </button>
+                  <button type="button" onClick={() => selectPresetHours('all')} style={{ flex: 1, padding: '7px 4px', fontSize: 11, borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>
+                    تحديد الكل
+                  </button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, direction: 'ltr' }}>
+                  {ALL_HALF_HOURS.map((hr) => {
+                    const isSelected = workingHours.includes(hr);
+                    return (
+                      <button
+                        key={hr}
+                        type="button"
+                        onClick={() => toggleWorkingHour(hr)}
+                        style={{
+                          padding: '8px 4px',
+                          borderRadius: 8,
+                          border: isSelected ? '1px solid #16a34a' : '1px solid #cbd5e1',
+                          background: isSelected ? '#16a34a' : '#fff',
+                          color: isSelected ? '#fff' : '#64748b',
+                          fontWeight: 700,
+                          fontSize: 13,
+                          cursor: 'pointer',
+                          fontFamily: 'inherit'
+                        }}
+                      >
+                        {hr}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={sectionCard}>
+                <strong style={{ display: 'block', marginBottom: 10, fontSize: 14, color: '#1e3a8a' }}>👤 تعديل بيانات الحساب:</strong>
+                <label style={{ fontSize: 13, fontWeight: 700 }}>اسم المشروع / الصالون</label>
+                <input type="text" style={inputStyle} value={bizName} onChange={(e) => setBizName(e.target.value)} required />
+
+                <label style={{ fontSize: 13, fontWeight: 700 }}>اسم صاحب المشروع</label>
+                <input type="text" style={inputStyle} value={ownerName} onChange={(e) => setOwnerName(e.target.value)} required />
+
+                <label style={{ fontSize: 13, fontWeight: 700 }}>رقم الهاتف (واتساب)</label>
+                <input type="tel" style={inputStyle} value={phone} onChange={(e) => setPhone(e.target.value)} required />
+
+                <label style={{ fontSize: 13, fontWeight: 700 }}>البريد الإلكتروني</label>
+                <input type="email" style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} />
+
+                <label style={{ fontSize: 13, fontWeight: 700 }}>الرمز السري (PIN)</label>
+                <input type="text" maxLength="6" style={{ ...inputStyle, textAlign: 'center', letterSpacing: 4, fontWeight: 700 }} value={pinCode} onChange={(e) => setPinCode(e.target.value)} required />
+              </div>
+
+              <button type="submit" disabled={savingSettings} style={{ width: '100%', background: '#16a34a', color: '#fff', border: 'none', padding: 14, borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(22,163,74,0.25)' }}>
+                {savingSettings ? 'جاري الحفظ...' : 'حفظ جميع الإعدادات ✅'}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
