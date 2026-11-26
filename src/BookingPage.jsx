@@ -353,10 +353,7 @@ export default function BookingPage({ provider, services, reviews = [], onSucces
     return (
       <div style={{ ...pageFont, maxWidth: 460, margin: '20px auto', background: '#fff', padding: 24, borderRadius: 20, boxShadow: '0 10px 25px rgba(0,0,0,0.06)', textAlign: 'center' }}>
         <div style={{ width: 64, height: 64, background: '#dcfce7', color: '#16a34a', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, margin: '0 auto 12px' }}>✓</div>
-        <h2 style={{ margin: '0 0 8px', color: '#15803d', fontWeight: 800 }}>تم تسجيل طلب حجزك!</h2>
-        <p style={{ color: '#475569', fontSize: 14, marginBottom: 18 }}>
-          خطوة أخيرة: اضغط على الزر الأخضر لإرسال تفاصيل حجزك لصاحب المشروع عبر واتساب.
-        </p>
+        
 
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 14, padding: 14, textAlign: 'right', fontSize: 13, marginBottom: 18, lineHeight: 1.8 }}>
           <div><strong>الاسم:</strong> {bookedInfo.clientName}</div>
