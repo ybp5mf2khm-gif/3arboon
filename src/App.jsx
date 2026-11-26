@@ -74,7 +74,7 @@ export default function App() {
   useEffect(() => {
     loadData();
   }, []);
-    const handleAiDirectorySearch = async (e) => {
+  const handleAiDirectorySearch = async (e) => {
     e.preventDefault();
     const q = aiSearchQuery.trim();
     if (!q) {
@@ -82,62 +82,6 @@ export default function App() {
       setMatchedProviders([]);
       return;
     }
-
-    const stopWords = ['ابحث', 'عن', 'البحث', 'بغيت', 'فين', 'محل', 'بائع', 'صالون', 'خدمة', 'اريد', 'أريد'];
-    const keywords = q
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((w) => w.length >= 2 && !stopWords.includes(w));
-    const searchTerms = keywords.length > 0 ? keywords : [q.toLowerCase()];
-
-    const directMatches = allProviders.filter((p) => {
-      const pName = String(p.business_name || '').toLowerCase();
-      const pBio = String(p.bio || '').toLowerCase();
-      const pOwner = String(p.owner_name || '').toLowerCase();
-      const pSrvs = allServices.filter((s) => s.provider_id === p.id);
-      const srvsText = pSrvs.map((s) => String(s.title || '').toLowerCase()).join(' ');
-      const fullText = pName + ' ' + pBio + ' ' + pOwner + ' ' + srvsText;
-      return searchTerms.some((term) => fullText.includes(term));
-    });
-    setMatchedProviders(directMatches);
-
-    setAiSearching(true);
-    try {
-      const directorySummary = allProviders.length > 0
-        ? allProviders.map((p) => {
-            const pSrvs = allServices.filter((s) => s.provider_id === p.id);
-            const srvsStr = pSrvs.length > 0
-              ? pSrvs.map((s) => s.title + ' (' + s.total_price + ' درهم)').join('، ')
-              : 'خدمات متنوعة';
-            return '- اسم البائع/المحل: ' + p.business_name + ' | الوصف: ' + (p.bio || 'غير محدد') + ' | الخدمات: ' + srvsStr;
-          }).join('\n')
-        : 'لا توجد محلات مسجلة حالياً';
-
-      const { data, error } = await supabase.functions.invoke('ai-assistant', {
-        body: {
-          action: 'ask_receptionist',
-          businessName: 'منصة عربون - دليل البائعين والمحلات',
-          providerContext: 'قائمة جميع البائعين والمحلات المسجلة في منصة عربون:\n' + directorySummary,
-          question: q
-        }
-      });
-
-      if (error) throw error;
-      if (data && data.error) throw new Error(data.error);
-      if (data && data.result) {
-        setAiSearchResult(data.result);
-      }
-    } catch (err) {
-      if (directMatches.length > 0) {
-        setAiSearchResult('✅ وجدنا ' + directMatches.length + ' نتيجة مطابقة لبحثك:');
-      } else {
-        setAiSearchResult('⚠️ لم يتم العثور على نتائج مطابقة لـ "' + q + '" (تأكد من الاسم أو تصفح القائمة بالأسفل).');
-      }
-    } finally {
-      setAiSearching(false);
-    }
-  };
-
 
     const lowerQ = q.toLowerCase();
     const directMatches = allProviders.filter((p) => {
