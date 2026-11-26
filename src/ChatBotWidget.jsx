@@ -22,7 +22,6 @@ const RobotAvatar = ({ size = 34 }) => (
     </defs>
   </svg>
 );
-
 export default function ChatBotWidget({
   allProviders = [],
   allServices = [],
@@ -55,7 +54,7 @@ export default function ChatBotWidget({
   const messagesEndRef = useRef(null);
   useEffect(() => {
     const welcomeText = currentProvider
-      ? 'مرحباً بك في ' + currentProvider.business_name + ' 👋! أنا روبوت الاستقبال الذكي الخاص بالمحل. كيف أساعدك؟ يمكنك طرح أي سؤال أو حجز موعدك مباشرة من هنا 👇'
+      ? 'مرحباً بك في ' + currentProvider.business_name + ' 👋! أنا روبوت الاستقبال الذكي الخاص بالمحل. كيف أساعدك؟ يمكنك طرح أي سؤال بالدارجة أو العربية، أو حجز موعدك مباشرة من هنا 👇'
       : 'مرحباً بك في منصة 3arboon 🇲🇦! أنا الروبوت المساعد. اسألني عن أي محل أو خدمة، أو ابدأ حجز موعدك مباشرة 👇';
 
     setMessages([{ role: 'bot', text: welcomeText, choices: [], matchedProvs: [] }]);
@@ -86,7 +85,6 @@ export default function ChatBotWidget({
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isOpen]);
-
   const startDrag = (clientX, clientY) => {
     isDraggingRef.current = true;
     hasMovedRef.current = false;
@@ -140,6 +138,39 @@ export default function ChatBotWidget({
     return allServices.filter((s) => String(s.provider_id) === String(prov.id));
   };
 
+  const buildPlatformContext = () => {
+    if (currentProvider) {
+      const srvs = getProviderServices(currentProvider);
+      const srvText = srvs.length > 0
+        ? srvs.map((s) => `• ${s.title}: الثمن ${s.total_price || s.price || 0} د.م (العربون: ${s.deposit_amount} د.م)`).join('\n')
+        : 'لا توجد خدمات مضافة حالياً.';
+      const hrs = Array.isArray(currentProvider.working_hours) && currentProvider.working_hours.length > 0
+        ? currentProvider.working_hours.join(' - ')
+        : 'من 09:00 إلى 17:30';
+      return (
+        `معرف المحل (ID): ${currentProvider.id}\n` +
+        `اسم المحل: ${currentProvider.business_name}\n` +
+        `الوصف: ${currentProvider.bio || 'غير متوفر'}\n` +
+        `أوقات العمل: ${hrs}\n` +
+        `الخدمات والأسعار:\n${srvText}`
+      );
+    }
+
+    if (!allProviders || allProviders.length === 0) {
+      return 'لا توجد محلات مفعلة حالياً في المنصة.';
+    }
+
+    return allProviders
+      .map((p) => {
+        const pSrvs = getProviderServices(p);
+        const sList = pSrvs.length > 0
+          ? pSrvs.map((s) => `${s.title} (${s.total_price || s.price || 0} د.م، عربون ${s.deposit_amount} د.م)`).join(' | ')
+          : 'خدمات عامة';
+        return `- [ID: ${p.id}] محل: ${p.business_name} | الوصف: ${p.bio || '-'} | الخدمات: ${sList}`;
+      })
+      .join('\n');
+  };
+
   const getAvailableSlotsForDate = async (prov, dateStr) => {
     const defaultHours = (Array.isArray(prov.working_hours) && prov.working_hours.length > 0)
       ? prov.working_hours
@@ -167,8 +198,7 @@ export default function ChatBotWidget({
     const free = defaultHours.filter((hr) => !taken.includes(hr));
     return { closed: false, slots: free };
   };
-
-  const startInteractiveBooking = (provOverride = null) => {
+  const startInteractiveBooking = (provOverride = null, preselectedServiceName = null) => {
     const targetProv = provOverride || currentProvider;
 
     if (!targetProv) {
@@ -216,6 +246,43 @@ export default function ChatBotWidget({
         }
       ]);
       return;
+    }
+
+    if (preselectedServiceName) {
+      const matchedSrv = srvs.find((s) =>
+        s.title && s.title.toLowerCase().includes(String(preselectedServiceName).toLowerCase())
+      );
+      if (matchedSrv) {
+        const nextDays = [];
+        for (let i = 0; i < 5; i++) {
+          const d = new Date();
+          d.setDate(d.getDate() + i);
+          const iso = d.toISOString().split('T').at(0);
+          const dayLabel = i === 0 ? 'اليوم (' + iso + ')' : i === 1 ? 'غداً (' + iso + ')' : iso;
+          nextDays.push({ type: 'date', label: '📅 ' + dayLabel, value: iso });
+        }
+
+        setBookingDraft({
+          step: 'select_date',
+          provider: targetProv,
+          service: matchedSrv,
+          date: '',
+          time: '',
+          clientName: '',
+          clientPhone: ''
+        });
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'bot',
+            text: `ممتاز! اخترت خدمة "${matchedSrv.title}" (${matchedSrv.total_price || matchedSrv.price || 0} د.م) في ${targetProv.business_name}.\nاختر تاريخ الموعد المناسب لك:`,
+            choices: [...nextDays, { type: 'cancel_booking', label: '✕ إلغاء الحجز', value: null }],
+            matchedProvs: []
+          }
+        ]);
+        return;
+      }
     }
 
     setBookingDraft({
@@ -268,7 +335,7 @@ export default function ChatBotWidget({
     }
 
     if (choice.type === 'provider') {
-      startInteractiveBooking(choice.value);
+      startInteractiveBooking(choice.value, choice.serviceName || null);
       return;
     }
 
@@ -519,6 +586,7 @@ export default function ChatBotWidget({
     setMessages((prev) => [...prev, { role: 'user', text: q, choices: [], matchedProvs: [] }]);
     setInput('');
 
+    // 1. التعامل مع خطوات الحجز الجارية (إدخال التاريخ، الاسم، الهاتف، أو الوصل)
     if (bookingDraft.step === 'select_date') {
       const dateMatch = q.match(/\d{4}-\d{2}-\d{2}/);
       if (dateMatch) {
@@ -574,155 +642,93 @@ export default function ChatBotWidget({
       return;
     }
 
-    const lowerQ = q.toLowerCase();
-
-    if (['حجز', 'احجز', 'موعد', 'رونديفو', 'rdv', 'نحجز', 'بغيت نحجز'].some((w) => lowerQ.includes(w))) {
-      startInteractiveBooking(currentProvider);
-      return;
-    }
-
-    if (['سلام', 'اهلا', 'أهلا', 'مرحبا', 'صباح', 'مساء', 'salam', 'bonjour', 'salut', 'hello', 'hi'].some((w) => lowerQ.includes(w)) && q.length <= 25) {
-      const greetReply = currentProvider
-        ? 'وعليكم السلام ورحمة الله! 👋 مرحباً بك في ' + currentProvider.business_name + '. كيف أساعدك اليوم؟ يمكنك السؤال عن الأسعار، أوقات العمل، أو الضغط على "احجز موعداً الآن".'
-        : 'وعليكم السلام ورحمة الله! 🇲🇦 مرحباً بك في منصة 3arboon. أنا جاهز لمساعدتك في اختيار المحل المناسب أو حجز موعدك فوراً!';
-      setMessages((prev) => [...prev, { role: 'bot', text: greetReply, choices: [], matchedProvs: [] }]);
-      return;
-    }
-
-    if (['ثمن', 'أسعار', 'اسعار', 'سعر', 'خدمات', 'بشحال', 'شحال', 'prix', 'tarif', 'service'].some((w) => lowerQ.includes(w))) {
-      if (currentProvider) {
-        const srvs = getProviderServices(currentProvider);
-        const list = srvs.length > 0
-          ? srvs.map((s) => '• ' + s.title + ': ' + (s.total_price || s.price || 0) + ' درهم (عربون: ' + s.deposit_amount + ' درهم)').join('\n')
-          : 'لم يتم إضافة خدمات بعد.';
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'bot',
-            text: '📋 قائمة خدمات وأسعار ' + currentProvider.business_name + ':\n' + list + '\n\nهل تود حجز إحدى هذه الخدمات؟',
-            choices: [{ type: 'provider', label: '📅 نعم، ابدأ الحجز الآن', value: currentProvider }],
-            matchedProvs: []
-          }
-        ]);
-        return;
-      } else if (allProviders.length > 0) {
-        const summary = allProviders.slice(0, 5).map((p) => {
-          const pSrvs = allServices.filter((s) => String(s.provider_id) === String(p.id));
-          const sTxt = pSrvs.length > 0 ? pSrvs.map((s) => s.title + ' (' + (s.total_price || s.price || 0) + ' د.م)').join('، ') : 'خدمات متنوعة';
-          return '🏪 ' + p.business_name + ': ' + sTxt;
-        }).join('\n');
-        setMessages((prev) => [
-          ...prev,
-          { role: 'bot', text: 'إليك أبرز المحلات وخدماتها المتوفرة حالياً:\n' + summary, choices: [], matchedProvs: allProviders.slice(0, 4) }
-        ]);
-        return;
-      }
-    }
-
-    if (['وقت', 'أوقات', 'اوقات', 'ساعات', 'مفتوح', 'فوقاش', 'إمتى', 'امتى', 'horaire'].some((w) => lowerQ.includes(w))) {
-      if (currentProvider) {
-        const hrs = (Array.isArray(currentProvider.working_hours) && currentProvider.working_hours.length > 0)
-          ? currentProvider.working_hours.join(' - ')
-          : 'من 09:00 صباحاً إلى 17:30 مساءً';
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'bot',
-            text: '⏰ أوقات العمل في ' + currentProvider.business_name + ':\n' + hrs + '\n\nاضغط على "احجز موعداً الآن" لرؤية الساعات الفارغة بدقة.',
-            choices: [],
-            matchedProvs: []
-          }
-        ]);
-        return;
-      }
-    }
-
-    if (['فين', 'موقع', 'عنوان', 'خريطة', 'بلاصة', 'مقر', 'localisation', 'adresse', 'maps'].some((w) => lowerQ.includes(w))) {
-      if (currentProvider) {
-        const mapLink = currentProvider.google_maps_url
-          ? currentProvider.google_maps_url
-          : (currentProvider.latitude && currentProvider.longitude ? 'https://google.com' + currentProvider.latitude + ',' + currentProvider.longitude : '');
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'bot',
-            text: mapLink
-              ? '📍 موقع ' + currentProvider.business_name + ' على خرائط جوجل:\n' + mapLink
-              : '📍 ' + currentProvider.business_name + ' متواجد بالمغرب. يمكنك التواصل عبر واتساب لتحديد الموقع الدقيق.',
-            choices: [],
-            matchedProvs: []
-          }
-        ]);
-        return;
-      }
-    }
-
-    if (!currentProvider && ['محلات', 'صالونات', 'مشاريع', 'قائمة', 'متوفرة', 'متاحة', 'بائعين'].some((w) => lowerQ.includes(w))) {
-      if (allProviders.length > 0) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'bot',
-            text: '🏪 لدينا ' + allProviders.length + ' مشروع وصالون معتمد في منصة 3arboon. اختر المحل الذي يناسبك للحجز مباشرة:',
-            choices: [],
-            matchedProvs: allProviders
-          }
-        ]);
-        return;
-      }
-    }
-
-    if (['كيف', 'طريقة', 'دفع', 'بنك', 'تحويل', 'rib', 'نخلص'].some((w) => lowerQ.includes(w))) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'bot',
-          text: '💡 طريقة الحجز في 3arboon بسيطة جداً:\n1️⃣ اختر المحل والخدمة.\n2️⃣ حدد اليوم والساعة المتاحة.\n3️⃣ حوّل مبلغ العربون البسيط لحساب المحل البنكي وارفع صورة الوصل هنا ليتحقق منه النظام فوراً!',
-          choices: [],
-          matchedProvs: []
-        }
-      ]);
-      return;
-    }
-
+    // 2. إرسال السؤال مباشرة إلى الذكاء الاصطناعي (يفهم الدارجة ويكتشف نية الحجز تلقائياً)
     setSending(true);
     try {
-      const recentHistory = messages
-        .slice(-4)
-        .map((m) => (m.role === 'user' ? 'الزبون: ' : 'الروبوت: ') + m.text)
-        .join('\n');
+      const chatHistory = messages.slice(-6).map((m) => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        content: m.text
+      }));
 
-      const contextPayload = currentProvider
-        ? 'أنت موظف استقبال "' + currentProvider.business_name + '". أجب في سطرين كحد أقصى بوضوح.\nالوصف: ' + (currentProvider.bio || '') + '\nالمحادثة:\n' + recentHistory
-        : 'أنت مساعد منصة 3arboon بالمغرب. أجب في سطرين كحد أقصى بوضوح.\nالمحلات: ' + allProviders.map((p) => p.business_name).join('، ') + '\nالمحادثة:\n' + recentHistory;
+      const platformData = buildPlatformContext();
 
       const aiPromise = supabase.functions.invoke('ai-assistant', {
         body: {
-          action: 'ask_receptionist',
+          action: 'platform_chat',
           businessName: currentProvider ? currentProvider.business_name : '3arboon',
-          providerContext: contextPayload,
+          platformData,
+          chatHistory,
           question: q
         }
       });
 
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('timeout')), 6000)
+        setTimeout(() => reject(new Error('timeout')), 9000)
       );
 
       const { data, error } = await Promise.race([aiPromise, timeoutPromise]);
       if (error) throw error;
 
-      const replyText = (data && data.result) ? data.result : 'كيف يمكنني مساعدتك؟ يمكنك الضغط على "احجز موعداً الآن" للبدء.';
-      setMessages((prev) => [...prev, { role: 'bot', text: replyText, choices: [], matchedProvs: [] }]);
+      const replyText = (data && data.result)
+        ? data.result
+        : 'كيف يمكنني مساعدتك؟ يمكنك حجز موعدك مباشرة من هنا 👇';
+
+      const hasIntent = Boolean(data && data.has_booking_intent);
+      const details = (data && data.booking_details) || {};
+
+      let smartChoices = [];
+      let detectedProvider = currentProvider || null;
+
+      if (!detectedProvider && details.provider_id) {
+        detectedProvider = allProviders.find((p) => String(p.id) === String(details.provider_id)) || null;
+      }
+      if (!detectedProvider && details.provider_name) {
+        detectedProvider = allProviders.find((p) =>
+          p.business_name && p.business_name.toLowerCase().includes(String(details.provider_name).toLowerCase())
+        ) || null;
+      }
+
+      if (hasIntent) {
+        if (detectedProvider) {
+          smartChoices.push({
+            type: 'provider',
+            label: `📅 إتمام الحجز في ${detectedProvider.business_name}${details.service_name ? ' (' + details.service_name + ')' : ''}`,
+            value: detectedProvider,
+            serviceName: details.service_name || null
+          });
+        } else {
+          smartChoices.push({
+            type: 'provider',
+            label: '📅 اختر المحل وابدأ الحجز الآن',
+            value: null
+          });
+        }
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'bot',
+          text: replyText,
+          choices: smartChoices,
+          matchedProvs: []
+        }
+      ]);
     } catch (err) {
       setMessages((prev) => [
         ...prev,
         {
           role: 'bot',
           text: currentProvider
-            ? 'يمكنني مساعدتك فوراً في معرفة الأسعار، أوقات العمل، أو حجز موعدك في ' + currentProvider.business_name + ' 👇'
-            : 'يمكنني مساعدتك في استعراض المحلات المتاحة أو حجز موعدك مباشرة في ثوانٍ 👇',
-          choices: [],
+            ? 'مرحباً بك! يمكنك حجز موعدك مباشرة في ' + currentProvider.business_name + ' بالضغط على الزر أدناه 👇'
+            : 'مرحباً بك في 3arboon! يمكنك استعراض المحلات وحجز موعدك مباشرة من هنا 👇',
+          choices: [
+            {
+              type: 'provider',
+              label: '📅 ابدأ الحجز الآن',
+              value: currentProvider || null
+            }
+          ],
           matchedProvs: []
         }
       ]);
@@ -736,13 +742,13 @@ export default function ChatBotWidget({
   const quickActions = currentProvider
     ? [
         { label: '📅 احجز موعداً الآن', action: () => startInteractiveBooking(currentProvider) },
-        { label: '💰 الأسعار والخدمات', action: () => sendMessage('ما هي الخدمات والأسعار؟') },
-        { label: '⏰ أوقات العمل', action: () => sendMessage('ما هي أوقات العمل؟') }
+        { label: '💰 الأسعار والخدمات', action: () => sendMessage('شنو هي الخدمات والأثمنة اللي عندكم؟') },
+        { label: '⏰ أوقات العمل', action: () => sendMessage('فوقاش كتحلو؟') }
       ]
     : [
         { label: '📅 احجز موعداً الآن', action: () => startInteractiveBooking(null) },
-        { label: '🏪 المحلات المتاحة', action: () => sendMessage('ما هي المحلات المتاحة؟') },
-        { label: '❓ كيف أحجز؟', action: () => sendMessage('كيف طريقة الحجز؟') }
+        { label: '🏪 المحلات المتاحة', action: () => sendMessage('شنو هما المحلات اللي متوفرين فـ المنصة؟') },
+        { label: '❓ كيف أحجز؟', action: () => sendMessage('كيفاش نقدر نحجز موعد؟') }
       ];
 
   return (
@@ -899,10 +905,25 @@ export default function ChatBotWidget({
                         type="button"
                         onClick={() => handleChoiceSelect(ch)}
                         style={{
-                          background: ch.type === 'cancel_booking' ? '#fee2e2' : '#eff6ff',
-                          color: ch.type === 'cancel_booking' ? '#dc2626' : '#1d4ed8',
-                          border: ch.type === 'cancel_booking' ? '1px solid #fca5a5' : '1px solid #93c5fd',
-                          padding: '6px 10px',
+                          background:
+                            ch.type === 'cancel_booking'
+                              ? '#fee2e2'
+                              : ch.type === 'provider' && ch.label.startsWith('📅')
+                              ? '#16a34a'
+                              : '#eff6ff',
+                          color:
+                            ch.type === 'cancel_booking'
+                              ? '#dc2626'
+                              : ch.type === 'provider' && ch.label.startsWith('📅')
+                              ? '#fff'
+                              : '#1d4ed8',
+                          border:
+                            ch.type === 'cancel_booking'
+                              ? '1px solid #fca5a5'
+                              : ch.type === 'provider' && ch.label.startsWith('📅')
+                              ? '1px solid #15803d'
+                              : '1px solid #93c5fd',
+                          padding: '7px 11px',
                           borderRadius: 10,
                           fontSize: 12,
                           fontWeight: 700,
@@ -937,6 +958,7 @@ export default function ChatBotWidget({
                     إرسال إشعار عبر واتساب 💬
                   </a>
                 )}
+
                 {Array.isArray(m.matchedProvs) && m.matchedProvs.length > 0 && (
                   <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 5 }}>
                     {m.matchedProvs.map((mp) => (
@@ -980,12 +1002,13 @@ export default function ChatBotWidget({
                   color: '#64748b'
                 }}
               >
-                3arboon يرفع الوصل ويؤكد الحجز... ⚡
+                {bookingDraft.step === 'upload_receipt'
+                  ? '3arboon يرفع الوصل ويؤكد الحجز... ⚡'
+                  : '3arboon يكتب الرد... ✨'}
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
-
           {bookingDraft.step === 'idle' && (
             <div
               style={{
