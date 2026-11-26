@@ -583,7 +583,16 @@ export default function App() {
         </div>
       )}
 
-      <ChatBotWidget allProviders={allProviders} allServices={allServices} />
+    <ChatBotWidget
+  allProviders={allProviders}
+  allServices={allServices}
+  currentProvider={slug ? provider : null}
+  currentServices={slug ? services : []}
+  onBookingCreated={() => {
+    if (provider) loadProviderDetails(provider);
+  }}
+/>
+
     </div>
   );
 }
