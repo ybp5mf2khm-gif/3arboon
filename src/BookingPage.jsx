@@ -503,7 +503,6 @@ link.href = canvas.toDataURL('image/png');
     return (
 
 
-return (
 <div style={{ ...pageFont, maxWidth: 440, margin: '20px auto', padding: '0 10px' }}>
 <div style={{ background: '#fff', borderRadius: 24, overflow: 'hidden', boxShadow: '0 15px 35px rgba(15, 23, 42, 0.14)', border: '1px solid #cbd5e1' }}>
 {/* رأس التذكرة */}
