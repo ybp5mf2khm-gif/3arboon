@@ -371,7 +371,7 @@ depositAmount: selectedSrv ? selectedSrv.deposit_amount : '',
 date,
 time,
 autoConfirmed: bookingStatus === 'confirmed',
-aiReport: aiReportText
+aiReport: typeof aiReportText ==='string' ? aiReportText : '',
 });
 setBookedTimes((prev) => [...prev, time]);
 setMsg('');
@@ -527,7 +527,7 @@ border: bookedInfo.autoConfirmed ? '1px solid #86efac' : '1px solid #fcd34d'
 
 {bookedInfo.aiReport && (
 <div style={{ marginTop: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '8px 10px', fontSize: 12, color: '#334155', fontWeight: 600 }}>
-{bookedInfo.aiReport}
+{String(bookedInfo.aiReport)}
 </div>
 )}
 </div>
