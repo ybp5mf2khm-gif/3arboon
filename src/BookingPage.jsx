@@ -506,7 +506,8 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
     const qrPayload = encodeURIComponent(
       '3ARBOON | ' + safeTicket + ' | ' + safeClient + ' | ' + safeDate + ' ' + safeTime
     );
-    const qrImageUrl = `https://qrserver.com{qrPayload}`;
+    const qrImageUrl = `https://quickchart.io{qrPayload}`;
+
 
     return (
       <div style={{ ...pageFont, maxWidth: 440, margin: '20px auto', padding: '0 10px' }}>
