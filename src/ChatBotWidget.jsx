@@ -548,7 +548,8 @@ export default function ChatBotWidget({
         booking_date: bookingDraft.date,
         booking_time: bookingDraft.time,
         receipt_url: receiptPublicUrl,
-        status: bookingStatus
+        status: bookingStatus,
+        ai_note: aiReportText || null
       }]);
 
       if (insErr) throw insErr;
