@@ -373,7 +373,19 @@ time,
 autoConfirmed: bookingStatus === 'confirmed',
 aiReport: aiReportText
 });
-
+setBookedTimes((prev) => [...prev, time]);
+setMsg('');
+setName('');
+setPhone('');
+setTime('');
+setFile(null);
+if (onSuccess) onSuccess();
+} catch (err) {
+setMsg('خطأ: ' + err.message);
+} finally {
+setLoading(false);
+}
+};
 const downloadTicketImage = (info) => {
 const canvas = document.createElement('canvas');
 canvas.width = 720;
