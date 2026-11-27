@@ -477,22 +477,31 @@ ctx.fillText(info.ticketCode + ' • 3arboon.ma', 360, 855);
 const link = document.createElement('a');
 link.download = `3arboon-ticket-${info.ticketCode}.png`;
 link.href = canvas.toDataURL('image/png');
-link.click();
-};
+  
+  if (bookedInfo) {
+    const safeTicket = String(bookedInfo.ticketCode || '3RB-0000');
+    const safeClient = String(bookedInfo.clientName || '');
+    const safeService = String(bookedInfo.serviceTitle || '');
+    const safeDate = String(bookedInfo.date || '');
+    const safeTime = String(bookedInfo.time || '');
+    const safeDeposit = String(bookedInfo.depositAmount || '0');
+    const safeReport = typeof bookedInfo.aiReport === 'string' ? bookedInfo.aiReport : '';
 
-if (bookedInfo) {
-const confirmWaText =
-'مرحبا ' + provider.business_name + '، هذه بطاقة موعدي عبر منصة عربون:\n' +
-'رقم التذكرة: ' + bookedInfo.ticketCode + '\n' +
-'الاسم: ' + bookedInfo.clientName + '\n' +
-'الخدمة: ' + bookedInfo.serviceTitle + '\n' +
-'التاريخ: ' + bookedInfo.date + ' الساعة ' + bookedInfo.time + '\n' +
-'العربون: ' + bookedInfo.depositAmount + ' درهم';
+    const confirmWaText =
+      'مرحبا ' + String(provider.business_name || '') + '، هذه بطاقة موعدي عبر منصة عربون:\n' +
+      'رقم التذكرة: ' + safeTicket + '\n' +
+      'الاسم: ' + safeClient + '\n' +
+      'الخدمة: ' + safeService + '\n' +
+      'التاريخ: ' + safeDate + ' الساعة ' + safeTime + '\n' +
+      'العربون: ' + safeDeposit + ' درهم';
 
-const qrPayload = encodeURIComponent(
-`3ARBOON | ${bookedInfo.ticketCode} | ${bookedInfo.clientName} | ${bookedInfo.date} ${bookedInfo.time}`
-);
-const qrImageUrl = ['https:/', '://qrserver.com', 'v1', 'create-qr-code', '?size=160x160&data=' + qrPayload].join('/');
+    const qrPayload = encodeURIComponent(
+      '3ARBOON | ' + safeTicket + ' | ' + safeClient + ' | ' + safeDate + ' ' + safeTime
+    );
+    const qrImageUrl = ['https:/', '://qrserver.com', 'v1', 'create-qr-code', '?size=160x160&data=' + qrPayload].join('/');
+
+    return (
+
 
 return (
 <div style={{ ...pageFont, maxWidth: 440, margin: '20px auto', padding: '0 10px' }}>
@@ -525,11 +534,12 @@ border: bookedInfo.autoConfirmed ? '1px solid #86efac' : '1px solid #fcd34d'
 {bookedInfo.autoConfirmed ? '✅ تم تأكيد موعدك تلقائياً!' : '⏳ في انتظار مراجعة المحل'}
 </div>
 
-{bookedInfo.aiReport && (
-<div style={{ marginTop: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '8px 10px', fontSize: 12, color: '#334155', fontWeight: 600 }}>
-{String(bookedInfo.aiReport)}
-</div>
-)}
+            {safeReport && (
+              <div style={{ marginTop: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '8px 10px', fontSize: 12, color: '#334155', fontWeight: 600 }}>
+                {safeReport}
+              </div>
+            )}
+
 </div>
 
 {/* خط فاصل مثقوب مثل التذاكر */}
