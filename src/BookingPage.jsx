@@ -492,7 +492,7 @@ const confirmWaText =
 const qrPayload = encodeURIComponent(
 `3ARBOON | ${bookedInfo.ticketCode} | ${bookedInfo.clientName} | ${bookedInfo.date} ${bookedInfo.time}`
 );
-const qrImageUrl = `https://qrserver.com{qrPayload}`;
+const qrImageUrl = ['https:/', '://qrserver.com', 'v1', 'create-qr-code', '?size=160x160&data=' + qrPayload].join('/');
 
 return (
 <div style={{ ...pageFont, maxWidth: 440, margin: '20px auto', padding: '0 10px' }}>
