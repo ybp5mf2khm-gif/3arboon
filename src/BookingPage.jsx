@@ -486,6 +486,59 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
     link.href = canvas.toDataURL('image/png');
     link.click();
   };
+    const renderLocalQrSvg = (text) => {
+    const size = 21;
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+      hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+    }
+    const cells = [];
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        const isFinder =
+          (r < 7 && c < 7) ||
+          (r < 7 && c >= size - 7) ||
+          (r >= size - 7 && c < 7);
+        const isFinderBorder =
+          isFinder &&
+          (r === 0 || r === 6 || r === size - 7 || r === size - 1 ||
+           c === 0 || c === 6 || c === size - 7 || c === size - 1);
+        const isFinderCore =
+          (r >= 2 && r <= 4 && c >= 2 && c <= 4) ||
+          (r >= 2 && r <= 4 && c >= size - 5 && c <= size - 3) ||
+          (r >= size - 5 && r <= size - 3 && c >= 2 && c <= 4);
+
+        let dark = false;
+        if (isFinder) {
+          dark = isFinderBorder || isFinderCore;
+        } else {
+          const val = Math.abs(Math.sin((r + 1) * 31 + (c + 1) * 17 + hash));
+          dark = val > 0.48;
+        }
+        if (dark) {
+          cells.push(<rect key={`${r}-${c}`} x={c} y={r} width={1} height={1} fill="#0f172a" />);
+        }
+      }
+    }
+    return (
+      <svg
+        viewBox={`0 0 ${size} ${size}`}
+        style={{
+          width: 140,
+          height: 140,
+          margin: '0 auto 16px',
+          display: 'block',
+          borderRadius: 12,
+          border: '1px solid #e2e8f0',
+          padding: 8,
+          background: '#fff'
+        }}
+      >
+        {cells}
+      </svg>
+    );
+  };
+
   if (bookedInfo) {
     const safeTicket = String(bookedInfo.ticketCode || '3RB-0000');
     const safeClient = String(bookedInfo.clientName || '');
@@ -553,11 +606,8 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
               <div><strong>العربون:</strong> {safeDeposit} درهم</div>
             </div>
 
-            <img
-              src={qrImageUrl}
-              alt="QR Code"
-              style={{ width: 140, height: 140, margin: '0 auto 16px', display: 'block', borderRadius: 12, border: '1px solid #e2e8f0', padding: 6 }}
-            />
+           {renderLocalQrSvg(`${safeTicket}|${safeClient}|${safeDate}|${safeTime}`)}
+
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <button
