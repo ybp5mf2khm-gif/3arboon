@@ -299,7 +299,8 @@ export default function BookingPage({ provider, services, reviews = [], onSucces
         booking_date: date,
         booking_time: time,
         receipt_url: receiptPublicUrl,
-        status: bookingStatus
+        status: bookingStatus,
+        ai_note: aiReportText || null
       }]);
       if (insErr) throw insErr;
 
