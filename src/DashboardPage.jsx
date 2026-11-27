@@ -66,6 +66,89 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     : ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'];
   const [workingHours, setWorkingHours] = useState(initialHours);
   const [savingSettings, setSavingSettings] = useState(false);
+    const [showScanner, setShowScanner] = useState(false);
+  const [ticketQuery, setTicketQuery] = useState('');
+  const [scannedBooking, setScannedBooking] = useState(null);
+  const [scanError, setScanError] = useState('');
+  const [scanningCamera, setScanningCamera] = useState(false);
+  const videoRef = React.useRef(null);
+  const streamRef = React.useRef(null);
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    setScanningCamera(false);
+  };
+
+  const findBookingByText = (rawText) => {
+    const clean = String(rawText || '').trim().toUpperCase();
+    if (!clean) return;
+    setTicketQuery(clean);
+    setScanError('');
+
+    const codeMatch = clean.match(/3RB-([A-Z0-9]+)/);
+    const shortCode = codeMatch ? codeMatch[1] : clean.replace(/^3RB-/, '');
+
+    const found = bookings.find((b) => {
+      const idUpper = String(b.id || '').toUpperCase();
+      return (
+        idUpper.startsWith(shortCode) ||
+        clean.includes(idUpper.slice(0, 8)) ||
+        String(b.client_phone || '').includes(clean)
+      );
+    });
+
+    if (found) {
+      setScannedBooking(found);
+      stopCamera();
+    } else {
+      setScannedBooking(null);
+      setScanError('لم يتم العثور على حجز مطابق لهذا الرمز: ' + clean);
+    }
+  };
+
+  const startCameraScan = async () => {
+    setScanError('');
+    setScannedBooking(null);
+    if (!('BarcodeDetector' in window)) {
+      setScanError('متصفحك لا يدعم المسح المباشر بالكاميرا؛ يمكنك كتابة رقم التذكرة أدناه.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      streamRef.current = stream;
+      setScanningCamera(true);
+      setTimeout(async () => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+          const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+          const scanLoop = async () => {
+            if (!streamRef.current || !videoRef.current) return;
+            try {
+              const codes = await detector.detect(videoRef.current);
+              if (codes.length > 0 && codes[0].rawValue) {
+                findBookingByText(codes[0].rawValue);
+                return;
+              }
+            } catch {}
+            requestAnimationFrame(scanLoop);
+          };
+          scanLoop();
+        }
+      }, 200);
+    } catch {
+      setScanError('تعذر فتح الكاميرا. تأكد من منح الإذن أو اكتب رقم التذكرة يدوياً.');
+      stopCamera();
+    }
+  };
+
+  useEffect(() => {
+    return () => stopCamera();
+  }, []);
+
 
   useEffect(() => {
     const link = document.createElement('link');
@@ -718,6 +801,109 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
         )}
         {tab === 'bookings' && (
           <div>
+                        <div style={{ marginBottom: 14 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !showScanner;
+                  setShowScanner(next);
+                  if (!next) stopCamera();
+                }}
+                style={{
+                  width: '100%',
+                  background: showScanner ? '#334155' : 'linear-gradient(135deg, #0f172a 0%, #1e40af 100%)',
+                  color: '#fff',
+                  border: 'none',
+                  padding: 12,
+                  borderRadius: 12,
+                  fontWeight: 800,
+                  fontSize: 14,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit'
+                }}
+              >
+                {showScanner ? 'إغلاق ماسح التذاكر ✕' : '📷 مسح تذكرة QR أو البحث برقم التذكرة'}
+              </button>
+
+              {showScanner && (
+                <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 14, padding: 14, marginTop: 10 }}>
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                    <input
+                      type="text"
+                      placeholder="اكتب رقم التذكرة (مثال: 3RB-1A83D376) أو الهاتف"
+                      value={ticketQuery}
+                      onChange={(e) => setTicketQuery(e.target.value)}
+                      style={{ ...inputStyle, margin: 0, flex: 1, fontSize: 13 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => findBookingByText(ticketQuery)}
+                      style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 10, padding: '0 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+                    >
+                      بحث
+                    </button>
+                  </div>
+
+                  {!scanningCamera ? (
+                    <button
+                      type="button"
+                      onClick={startCameraScan}
+                      style={{ width: '100%', background: '#16a34a', color: '#fff', border: 'none', padding: 10, borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+                    >
+                      فتح الكاميرا لمسح QR 📷
+                    </button>
+                  ) : (
+                    <div style={{ textAlign: 'center' }}>
+                      <video ref={videoRef} style={{ width: '100%', maxHeight: 240, borderRadius: 10, background: '#000' }} playsInline muted />
+                      <button
+                        type="button"
+                        onClick={stopCamera}
+                        style={{ marginTop: 8, background: '#dc2626', color: '#fff', border: 'none', padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                      >
+                        إيقاف الكاميرا
+                      </button>
+                    </div>
+                  )}
+
+                  {scanError && (
+                    <div style={{ background: '#fef2f2', color: '#b91c1c', padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700, marginTop: 10 }}>
+                      {scanError}
+                    </div>
+                  )}
+
+                  {scannedBooking && (
+                    <div style={{ background: '#fff', border: '2px solid #2563eb', borderRadius: 12, padding: 12, marginTop: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <strong style={{ fontSize: 15, color: '#0f172a' }}>{scannedBooking.client_name}</strong>
+                        <span style={{
+                          padding: '3px 9px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+                          background: scannedBooking.status === 'confirmed' ? '#dcfce7' : '#fef9c3',
+                          color: scannedBooking.status === 'confirmed' ? '#166534' : '#854d0e'
+                        }}>
+                          {scannedBooking.status === 'confirmed' ? 'مؤكد ✅' : scannedBooking.status === 'rejected' ? 'مرفوض ❌' : 'معلق ⏳'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 13, color: '#2563eb', fontWeight: 700 }}>
+                        📅 {scannedBooking.booking_date} • ⏰ {scannedBooking.booking_time}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>
+                        📞 {scannedBooking.client_phone}
+                      </div>
+                      {scannedBooking.status !== 'confirmed' && (
+                        <button
+                          type="button"
+                          onClick={() => updateStatus(scannedBooking, 'confirmed')}
+                          style={{ width: '100%', marginTop: 10, background: '#16a34a', color: '#fff', border: 'none', padding: 9, borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+                        >
+                          تأكيد الحجز الآن ✓
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {bookings.length === 0 && (
               <div style={{ textAlign: 'center', color: '#64748b', fontSize: 14, padding: 28, background: '#f8fafc', borderRadius: 14 }}>
                 لا توجد حجوزات بعد. شارك رابطك لاستقبال أول حجز!
