@@ -465,92 +465,152 @@ export default function ChatBotWidget({
     ]);
   };
 
-  const handleReceiptUploadAndSave = async (file) => {
-    if (!file || sending) return;
-    const prov = bookingDraft.provider;
-    const srv = bookingDraft.service;
+  const computeFileHash = async (targetFile) => {
+try {
+const buffer = await targetFile.arrayBuffer();
+const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+return Array.from(new Uint8Array(hashBuffer))
+.map((b) => b.toString(16).padStart(2, '0'))
+.join('');
+} catch {
+return '';
+}
+};
 
-    if (!prov || !srv || !bookingDraft.date || !bookingDraft.time || !bookingDraft.clientName || !bookingDraft.clientPhone) {
-      return;
-    }
+const handleReceiptUploadAndSave = async (file) => {
+if (!file || sending) return;
+const prov = bookingDraft.provider;
+const srv = bookingDraft.service;
 
-    setMessages((prev) => [
-      ...prev,
-      { role: 'user', text: '📎 تم اختيار صورة الوصل: ' + file.name, choices: [], matchedProvs: [] }
-    ]);
+if (!prov || !srv || !bookingDraft.date || !bookingDraft.time || !bookingDraft.clientName || !bookingDraft.clientPhone) {
+return;
+}
 
-    setSending(true);
-    try {
-      const { data: existing } = await supabase
-        .from('bookings')
-        .select('id')
-        .eq('provider_id', prov.id)
-        .eq('booking_date', bookingDraft.date)
-        .eq('booking_time', bookingDraft.time)
-        .neq('status', 'rejected');
+setMessages((prev) => [
+...prev,
+{ role: 'user', text: '📎 تم اختيار صورة الوصل: ' + file.name, choices: [], matchedProvs: [] }
+]);
 
-      if (existing && existing.length > 0) {
-        setSending(false);
-        setBookingDraft((prev) => ({ ...prev, step: 'select_date', time: '' }));
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'bot',
-            text: '⚠️ عذراً، تم حجز هذه الساعة للتو! اكتب تاريخاً آخر أو اختر وقتاً جديداً.',
-            choices: [],
-            matchedProvs: []
-          }
-        ]);
-        return;
-      }
+setSending(true);
+try {
+// 1. منع تكرار نفس صورة الوصل (بصمة SHA-256)
+const fileHash = await computeFileHash(file);
+if (fileHash) {
+const { data: dupHash } = await supabase
+.from('bookings')
+.select('id')
+.eq('receipt_hash', fileHash)
+.neq('status', 'rejected')
+.limit(1);
 
-      const ext = file.name.split('.').pop() || 'jpg';
-      const fileName = Date.now() + '.' + ext;
-      const { error: upErr } = await supabase.storage.from('receipts').upload(fileName, file);
-      if (upErr) throw upErr;
+if (dupHash && dupHash.length > 0) {
+setSending(false);
+setMessages((prev) => [
+...prev,
+{
+role: 'bot',
+text: '⚠️ عذراً، صورة هذا الوصل استُخدمت مسبقاً في حجز آخر! يرجى رفع صورة وصل تحويل جديد.',
+choices: [{ type: 'cancel_booking', label: '✕ إلغاء الحجز', value: null }],
+matchedProvs: [],
+requireReceiptUpload: true
+}
+]);
+return;
+}
+}
 
-      const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(fileName);
-      const receiptPublicUrl = urlData.publicUrl;
+// 2. التحقق من توفر الساعة
+const { data: existing } = await supabase
+.from('bookings')
+.select('id')
+.eq('provider_id', prov.id)
+.eq('booking_date', bookingDraft.date)
+.eq('booking_time', bookingDraft.time)
+.neq('status', 'rejected');
 
-      // التحقق من أهلية المحل للفحص التلقائي الذكي (Premium أو الشهر التجريبي المجاني)
-      const plan = String(prov.plan_type || 'trial').toLowerCase();
-      const isExpired = prov.plan_expires_at ? new Date() > new Date(prov.plan_expires_at) : false;
-      const canAutoVerify = !isExpired && (plan === 'premium' || plan === 'trial');
+if (existing && existing.length > 0) {
+setSending(false);
+setBookingDraft((prev) => ({ ...prev, step: 'select_date', time: '' }));
+setMessages((prev) => [
+...prev,
+{
+role: 'bot',
+text: '⚠️ عذراً، تم حجز هذه الساعة للتو! اكتب تاريخاً آخر أو اختر وقتاً جديداً.',
+choices: [],
+matchedProvs: []
+}
+]);
+return;
+}
 
-      let bookingStatus = 'pending';
-      let aiReportText = '';
+// 3. رفع صورة الوصل
+const ext = file.name.split('.').pop() || 'jpg';
+const fileName = Date.now() + '.' + ext;
+const { error: upErr } = await supabase.storage.from('receipts').upload(fileName, file);
+if (upErr) throw upErr;
 
-      if (canAutoVerify) {
-        try {
-          const { data: aiRes, error: aiErr } = await supabase.functions.invoke('ai-assistant', {
-            body: {
-              action: 'verify_receipt',
-              receiptUrl: receiptPublicUrl,
-              expectedAmount: srv.deposit_amount || 0
-            }
-          });
-          if (!aiErr && aiRes) {
-            aiReportText = aiRes.result || '';
-            if (aiRes.auto_approve === true) {
-              bookingStatus = 'confirmed';
-            }
-          }
-        } catch {
-          // في حال تعذر الفحص التلقائي، يبقى pending للمراجعة اليدوية
-        }
-      }
+const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(fileName);
+const receiptPublicUrl = urlData.publicUrl;
 
-      const { error: insErr } = await supabase.from('bookings').insert([{
-        provider_id: prov.id,
-        service_id: srv.id,
-        client_name: bookingDraft.clientName,
-        client_phone: bookingDraft.clientPhone,
-        booking_date: bookingDraft.date,
-        booking_time: bookingDraft.time,
-        receipt_url: receiptPublicUrl,
-        status: bookingStatus,
-        ai_note: aiReportText || null
-      }]);
+// 4. الفحص التلقائي بالذكاء الاصطناعي + كشف تكرار رقم المرجع
+const plan = String(prov.plan_type || 'trial').toLowerCase();
+const isExpired = prov.plan_expires_at ? new Date() > new Date(prov.plan_expires_at) : false;
+const canAutoVerify = !isExpired && (plan === 'premium' || plan === 'trial');
+
+let bookingStatus = 'pending';
+let aiReportText = '';
+let extractedRef = '';
+
+if (canAutoVerify) {
+try {
+const { data: aiRes, error: aiErr } = await supabase.functions.invoke('ai-assistant', {
+body: {
+action: 'verify_receipt',
+receiptUrl: receiptPublicUrl,
+expectedAmount: srv.deposit_amount || 0
+}
+});
+if (!aiErr && aiRes) {
+aiReportText = aiRes.result || '';
+extractedRef = String(aiRes.transaction_ref || '').trim();
+
+let isDuplicateRef = false;
+if (extractedRef && extractedRef.length >= 4) {
+const { data: dupRef } = await supabase
+.from('bookings')
+.select('id')
+.eq('transaction_ref', extractedRef)
+.neq('status', 'rejected')
+.limit(1);
+
+if (dupRef && dupRef.length > 0) {
+isDuplicateRef = true;
+aiReportText = `⚠️ تنبيه تكرار: رقم مرجع هذه العملية (${extractedRef}) استُخدم مسبقاً في حجز آخر! (${aiReportText})`;
+}
+}
+
+if (aiRes.auto_approve === true && !isDuplicateRef) {
+bookingStatus = 'confirmed';
+}
+}
+} catch {
+// في حال تعذر الفحص التلقائي، يبقى pending للمراجعة اليدوية
+}
+}
+
+const { error: insErr } = await supabase.from('bookings').insert([{
+provider_id: prov.id,
+service_id: srv.id,
+client_name: bookingDraft.clientName,
+client_phone: bookingDraft.clientPhone,
+booking_date: bookingDraft.date,
+booking_time: bookingDraft.time,
+receipt_url: receiptPublicUrl,
+status: bookingStatus,
+ai_note: aiReportText || null,
+receipt_hash: fileHash || null,
+transaction_ref: extractedRef || null
+}]);
 
       if (insErr) throw insErr;
 
