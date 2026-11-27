@@ -339,7 +339,9 @@ console.warn('Auto AI verify fallback to pending:', aiCheckErr);
 }
 }
 
-const { error: insErr } = await supabase.from('bookings').insert([{
+const { data: insertedBooking, error: insErr } = await supabase
+.from('bookings')
+.insert([{
 provider_id: provider.id,
 service_id: serviceId,
 client_name: name,
@@ -351,11 +353,19 @@ status: bookingStatus,
 ai_note: aiReportText || null,
 receipt_hash: fileHash || null,
 transaction_ref: extractedRef || null
-}]);
+}])
+.select('id')
+.single();
 if (insErr) throw insErr;
 
+const shortCode = insertedBooking && insertedBooking.id
+? String(insertedBooking.id).slice(0, 8).toUpperCase()
+: String(Date.now()).slice(-6);
+
 setBookedInfo({
+ticketCode: '3RB-' + shortCode,
 clientName: name,
+clientPhone: phone,
 serviceTitle: selectedSrv ? selectedSrv.title : '',
 depositAmount: selectedSrv ? selectedSrv.deposit_amount : '',
 date,
@@ -364,19 +374,207 @@ autoConfirmed: bookingStatus === 'confirmed',
 aiReport: aiReportText
 });
 
-setBookedTimes((prev) => [...prev, time]);
-setMsg('');
-setName('');
-setPhone('');
-setTime('');
-setFile(null);
-if (onSuccess) onSuccess();
-} catch (err) {
-setMsg('خطأ: ' + err.message);
-} finally {
-setLoading(false);
-}
+const downloadTicketImage = (info) => {
+const canvas = document.createElement('canvas');
+canvas.width = 720;
+canvas.height = 960;
+const ctx = canvas.getContext('2d');
+
+// خلفية البطاقة
+ctx.fillStyle = '#0f172a';
+ctx.fillRect(0, 0, 720, 960);
+
+// بطاقة بيضاء داخلية
+ctx.fillStyle = '#ffffff';
+ctx.beginPath();
+ctx.roundRect(36, 36, 648, 888, 28);
+ctx.fill();
+
+// رأس البطاقة الأزرق
+ctx.fillStyle = '#1e40af';
+ctx.beginPath();
+ctx.roundRect(36, 36, 648, 190, [28, 28, 0, 0]);
+ctx.fill();
+
+ctx.fillStyle = '#93c5fd';
+ctx.font = 'bold 22px sans-serif';
+ctx.textAlign = 'center';
+ctx.fillText('منصة عربون • 3ARBOON', 360, 88);
+
+ctx.fillStyle = '#ffffff';
+ctx.font = 'bold 34px sans-serif';
+ctx.fillText(provider.business_name || 'بطاقة موعد رقمية', 360, 140);
+
+ctx.fillStyle = '#fde047';
+ctx.font = 'bold 24px monospace';
+ctx.fillText('رقم التذكرة: ' + info.ticketCode, 360, 192);
+
+// شارة الحالة
+ctx.fillStyle = info.autoConfirmed ? '#dcfce7' : '#fef3c7';
+ctx.beginPath();
+ctx.roundRect(140, 250, 440, 52, 14);
+ctx.fill();
+
+ctx.fillStyle = info.autoConfirmed ? '#15803d' : '#b45309';
+ctx.font = 'bold 23px sans-serif';
+ctx.fillText(
+info.autoConfirmed ? '✓ موعد مؤكد ومدفوع العربون' : '⏳ في انتظار مراجعة المحل',
+360,
+284
+);
+
+// تفاصيل الحجز
+ctx.textAlign = 'right';
+const rows = [
+['الزبون:', info.clientName],
+['الخدمة:', info.serviceTitle],
+['التاريخ:', info.date],
+['الساعة:', info.time],
+['العربون:', info.depositAmount + ' درهم مغربي']
+];
+
+let yPos = 365;
+rows.forEach(([label, val]) => {
+ctx.fillStyle = '#64748b';
+ctx.font = 'bold 24px sans-serif';
+ctx.fillText(label, 630, yPos);
+
+ctx.fillStyle = '#0f172a';
+ctx.font = 'bold 26px sans-serif';
+ctx.fillText(String(val || ''), 480, yPos);
+
+ctx.strokeStyle = '#e2e8f0';
+ctx.lineWidth = 2;
+ctx.beginPath();
+ctx.moveTo(80, yPos + 24);
+ctx.lineTo(640, yPos + 24);
+ctx.stroke();
+
+yPos += 76;
+});
+
+// تذييل البطاقة
+ctx.textAlign = 'center';
+ctx.fillStyle = '#475569';
+ctx.font = '20px sans-serif';
+ctx.fillText('أبرز هذه البطاقة عند وصولك للمحل', 360, 810);
+ctx.fillStyle = '#94a3b8';
+ctx.font = '18px monospace';
+ctx.fillText(info.ticketCode + ' • 3arboon.ma', 360, 855);
+
+const link = document.createElement('a');
+link.download = `3arboon-ticket-${info.ticketCode}.png`;
+link.href = canvas.toDataURL('image/png');
+link.click();
 };
+
+if (bookedInfo) {
+const confirmWaText =
+'مرحبا ' + provider.business_name + '، هذه بطاقة موعدي عبر منصة عربون:\n' +
+'رقم التذكرة: ' + bookedInfo.ticketCode + '\n' +
+'الاسم: ' + bookedInfo.clientName + '\n' +
+'الخدمة: ' + bookedInfo.serviceTitle + '\n' +
+'التاريخ: ' + bookedInfo.date + ' الساعة ' + bookedInfo.time + '\n' +
+'العربون: ' + bookedInfo.depositAmount + ' درهم';
+
+const qrPayload = encodeURIComponent(
+`3ARBOON | ${bookedInfo.ticketCode} | ${bookedInfo.clientName} | ${bookedInfo.date} ${bookedInfo.time}`
+);
+const qrImageUrl = `https://qrserver.com{qrPayload}`;
+
+return (
+<div style={{ ...pageFont, maxWidth: 440, margin: '20px auto', padding: '0 10px' }}>
+<div style={{ background: '#fff', borderRadius: 24, overflow: 'hidden', boxShadow: '0 15px 35px rgba(15, 23, 42, 0.14)', border: '1px solid #cbd5e1' }}>
+{/* رأس التذكرة */}
+<div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e40af 100%)', color: '#fff', padding: '20px 18px', textAlign: 'center' }}>
+<div style={{ fontSize: 11, color: '#93c5fd', fontWeight: 700, letterSpacing: 1 }}>
+بطاقة موعد رقمية • 3ARBOON
+</div>
+<h2 style={{ margin: '6px 0 4px', fontSize: 20, fontWeight: 800 }}>
+{provider.business_name}
+</h2>
+<div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.15)', padding: '4px 14px', borderRadius: 12, fontSize: 14, fontWeight: 800, color: '#fde047', fontFamily: 'monospace', marginTop: 4 }}>
+{bookedInfo.ticketCode}
+</div>
+</div>
+
+{/* شارة الحالة */}
+<div style={{ padding: '16px 20px 10px', textAlign: 'center' }}>
+<div style={{
+display: 'inline-block',
+padding: '6px 16px',
+borderRadius: 20,
+fontSize: 13,
+fontWeight: 800,
+background: bookedInfo.autoConfirmed ? '#dcfce7' : '#fef3c7',
+color: bookedInfo.autoConfirmed ? '#15803d' : '#b45309',
+border: bookedInfo.autoConfirmed ? '1px solid #86efac' : '1px solid #fcd34d'
+}}>
+{bookedInfo.autoConfirmed ? '✅ تم تأكيد موعدك تلقائياً!' : '⏳ في انتظار مراجعة المحل'}
+</div>
+
+{bookedInfo.aiReport && (
+<div style={{ marginTop: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '8px 10px', fontSize: 12, color: '#334155', fontWeight: 600 }}>
+{bookedInfo.aiReport}
+</div>
+)}
+</div>
+
+{/* خط فاصل مثقوب مثل التذاكر */}
+<div style={{ borderTop: '2px dashed #cbd5e1', margin: '8px 18px' }} />
+
+{/* بيانات البطاقة + QR */}
+<div style={{ padding: '10px 20px 20px' }}>
+<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+<div style={{ flex: 1, fontSize: 13, lineHeight: 2, color: '#0f172a' }}>
+<div><span style={{ color: '#64748b' }}>الزبون:</span> <strong>{bookedInfo.clientName}</strong></div>
+<div><span style={{ color: '#64748b' }}>الخدمة:</span> <strong>{bookedInfo.serviceTitle}</strong></div>
+<div><span style={{ color: '#64748b' }}>التاريخ:</span> <strong style={{ direction: 'ltr', display: 'inline-block' }}>{bookedInfo.date}</strong></div>
+<div><span style={{ color: '#64748b' }}>الساعة:</span> <strong style={{ color: '#1d4ed8' }}>{bookedInfo.time}</strong></div>
+<div><span style={{ color: '#64748b' }}>العربون:</span> <strong style={{ color: '#16a34a' }}>{bookedInfo.depositAmount} درهم</strong></div>
+</div>
+
+<div style={{ textAlign: 'center', background: '#f8fafc', padding: 8, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+<img
+src={qrImageUrl}
+alt="QR Code"
+style={{ width: 104, height: 104, display: 'block', borderRadius: 6 }}
+/>
+<span style={{ fontSize: 10, color: '#64748b', fontWeight: 700, marginTop: 4, display: 'block' }}>
+امسح عند الوصول
+</span>
+</div>
+</div>
+
+<button
+type="button"
+onClick={() => downloadTicketImage(bookedInfo)}
+style={{ width: '100%', background: '#1e40af', color: '#fff', border: 'none', padding: 13, borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8 }}
+>
+📥 حفظ بطاقة الموعد في الهاتف
+</button>
+
+{providerWaPhone && (
+<a
+href={buildWhatsAppUrl(confirmWaText)}
+style={{ display: 'block', width: '100%', background: '#25D366', color: '#fff', padding: 13, borderRadius: 12, fontWeight: 800, fontSize: 14, textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box', marginBottom: 8 }}
+>
+💬 إرسال التذكرة عبر واتساب
+</a>
+)}
+
+<button
+type="button"
+onClick={() => setBookedInfo(null)}
+style={{ width: '100%', background: '#f1f5f9', color: '#334155', border: 'none', padding: 11, borderRadius: 12, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+>
+حجز موعد آخر
+</button>
+</div>
+</div>
+</div>
+);
+}
 
   const pageFont = { fontFamily: "'Cairo', sans-serif", direction: 'rtl' };
 
