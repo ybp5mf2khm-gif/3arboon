@@ -402,20 +402,23 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
     }
   };
 
-  const downloadTicketImage = (info) => {
+   const downloadTicketImage = async (info) => {
     const canvas = document.createElement('canvas');
     canvas.width = 720;
-    canvas.height = 960;
+    canvas.height = 1040;
     const ctx = canvas.getContext('2d');
 
+    // خلفية البطاقة
     ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0, 0, 720, 960);
+    ctx.fillRect(0, 0, 720, 1040);
 
+    // بطاقة بيضاء داخلية
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.roundRect(36, 36, 648, 888, 28);
+    ctx.roundRect(36, 36, 648, 968, 28);
     ctx.fill();
 
+    // رأس البطاقة الأزرق
     ctx.fillStyle = '#1e40af';
     ctx.beginPath();
     ctx.roundRect(36, 36, 648, 190, [28, 28, 0, 0]);
@@ -434,6 +437,7 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
     ctx.font = 'bold 24px monospace';
     ctx.fillText('رقم التذكرة: ' + info.ticketCode, 360, 192);
 
+    // شارة الحالة
     ctx.fillStyle = info.autoConfirmed ? '#dcfce7' : '#fef3c7';
     ctx.beginPath();
     ctx.roundRect(140, 250, 440, 52, 14);
@@ -447,6 +451,7 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
       284
     );
 
+    // تفاصيل الحجز
     ctx.textAlign = 'right';
     const rows = [
       ['الزبون:', info.clientName],
@@ -473,22 +478,47 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
       ctx.lineTo(640, yPos + 24);
       ctx.stroke();
 
-      yPos += 76;
+      yPos += 72;
     });
 
+    // توليد ورسم رمز QR الحقيقي داخل الصورة
+    try {
+      const qrSrc = qrImageUrl || await generateQrDataUrl(
+        `3ARBOON | ${info.ticketCode} | ${info.clientName} | ${info.date} ${info.time}`
+      );
+      if (qrSrc) {
+        await new Promise((resolve) => {
+          const qrImg = new Image();
+          qrImg.onload = () => {
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(265, 725, 190, 190, 16);
+            ctx.stroke();
+            ctx.drawImage(qrImg, 275, 735, 170, 170);
+            resolve();
+          };
+          qrImg.onerror = resolve;
+          qrImg.src = qrSrc;
+        });
+      }
+    } catch {}
+
+    // تذييل البطاقة
     ctx.textAlign = 'center';
     ctx.fillStyle = '#475569';
     ctx.font = '20px sans-serif';
-    ctx.fillText('أبرز هذه البطاقة عند وصولك للمحل', 360, 810);
+    ctx.fillText('أبرز هذه البطاقة أو امسح الرمز عند وصولك للمحل', 360, 948);
     ctx.fillStyle = '#94a3b8';
     ctx.font = '18px monospace';
-    ctx.fillText(info.ticketCode + ' • 3arboon.ma', 360, 855);
+    ctx.fillText(info.ticketCode + ' • 3arboon.ma', 360, 982);
 
     const link = document.createElement('a');
     link.download = `3arboon-ticket-${info.ticketCode}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   };
+
 
   if (bookedInfo) {
     const safeTicket = String(bookedInfo.ticketCode || '3RB-0000');
