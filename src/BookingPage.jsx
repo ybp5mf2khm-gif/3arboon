@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { generateQrDataUrl } from './qrGenerator';
 
-
 export default function BookingPage({ provider = {}, services = [], reviews = [], onSuccess }) {
   const defaultHours = (Array.isArray(provider.working_hours) && provider.working_hours.length > 0)
     ? provider.working_hours
@@ -24,6 +23,7 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const [bookedInfo, setBookedInfo] = useState(null);
+  const [qrImageUrl, setQrImageUrl] = useState('');
 
   const [revName, setRevName] = useState('');
   const [revRating, setRevRating] = useState(5);
@@ -51,7 +51,7 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
 
   useEffect(() => {
     const link = document.createElement('link');
-    link.href = 'https://googleapis.com';
+    link.href = 'https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap';
     link.rel = 'stylesheet';
     document.head.appendChild(link);
   }, []);
@@ -84,6 +84,15 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
     fetchBookedSlots();
   }, [date, provider.id]);
 
+  useEffect(() => {
+    if (!bookedInfo) {
+      setQrImageUrl('');
+      return;
+    }
+    const payload = `3ARBOON | ${bookedInfo.ticketCode} | ${bookedInfo.clientName} | ${bookedInfo.date} ${bookedInfo.time}`;
+    generateQrDataUrl(payload).then((url) => setQrImageUrl(url)).catch(() => {});
+  }, [bookedInfo]);
+
   const rawPhone = String(provider.phone || '').replace(/\D/g, '');
   let providerWaPhone = rawPhone;
   if (providerWaPhone.startsWith('0')) {
@@ -92,7 +101,7 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
     providerWaPhone = '212' + providerWaPhone;
   }
 
-  const buildWhatsAppUrl = (text) => 'https://wa.me' + providerWaPhone + '?text=' + encodeURIComponent(text);
+  const buildWhatsAppUrl = (text) => 'https://wa.me/' + providerWaPhone + '?text=' + encodeURIComponent(text);
 
   const inquiryWaText =
     'مرحبا ' + (provider.business_name || '') + '، أود الاستفسار بخصوص حجز موعد' +
@@ -108,12 +117,13 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
   const mapsUrl = provider.google_maps_url
     ? provider.google_maps_url
     : (provider.latitude && provider.longitude
-      ? 'https://google.com' + provider.latitude + ',' + provider.longitude
+      ? 'https://www.google.com/maps?q=' + provider.latitude + ',' + provider.longitude
       : null);
 
   const servicesSummaryText = services.length > 0
     ? services.map((s) => '- ' + s.title + ': الثمن ' + (s.total_price || s.price || 0) + ' درهم، العربون ' + s.deposit_amount + ' درهم').join('\n')
     : 'لا توجد خدمات مسجلة حالياً';
+
   const handleAskReceptionistAI = async (e) => {
     e.preventDefault();
     if (!question.trim()) return alert('اكتب سؤالك أولاً');
@@ -246,6 +256,7 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
       return '';
     }
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!date) return alert('اختر تاريخ الموعد');
@@ -257,7 +268,6 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
     setMsg('جاري التحقق من الموعد وصلاحية الوصل...');
 
     try {
-      // 1. التحقق من عدم تكرار نفس صورة الوصل (بصمة الملف SHA-256)
       const fileHash = await computeFileHash(file);
       if (fileHash) {
         const { data: dupHash } = await supabase
@@ -274,7 +284,6 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
         }
       }
 
-      // 2. التحقق من توفر الساعة
       const { data: existing } = await supabase
         .from('bookings')
         .select('id')
@@ -291,7 +300,6 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
         return alert('عذراً، هذا التوقيت تم حجزه للتو! يرجى اختيار ساعة أخرى متاحة.');
       }
 
-      // 3. رفع صورة الوصل
       const ext = file.name.split('.').pop();
       const fileName = Date.now() + '.' + ext;
       const { error: upErr } = await supabase.storage.from('receipts').upload(fileName, file);
@@ -300,7 +308,6 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
       const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(fileName);
       const receiptPublicUrl = urlData.publicUrl;
 
-      // 4. الفحص التلقائي بالذكاء الاصطناعي + كشف تكرار رقم مرجع العملية
       const plan = String(provider.plan_type || 'trial').toLowerCase();
       const isExpired = provider.plan_expires_at ? new Date() > new Date(provider.plan_expires_at) : false;
       const canAutoVerify = !isExpired && (plan === 'premium' || plan === 'trial');
@@ -401,17 +408,14 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
     canvas.height = 960;
     const ctx = canvas.getContext('2d');
 
-    // خلفية البطاقة
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(0, 0, 720, 960);
 
-    // بطاقة بيضاء داخلية
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.roundRect(36, 36, 648, 888, 28);
     ctx.fill();
 
-    // رأس البطاقة الأزرق
     ctx.fillStyle = '#1e40af';
     ctx.beginPath();
     ctx.roundRect(36, 36, 648, 190, [28, 28, 0, 0]);
@@ -430,7 +434,6 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
     ctx.font = 'bold 24px monospace';
     ctx.fillText('رقم التذكرة: ' + info.ticketCode, 360, 192);
 
-    // شارة الحالة
     ctx.fillStyle = info.autoConfirmed ? '#dcfce7' : '#fef3c7';
     ctx.beginPath();
     ctx.roundRect(140, 250, 440, 52, 14);
@@ -444,7 +447,6 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
       284
     );
 
-    // تفاصيل الحجز
     ctx.textAlign = 'right';
     const rows = [
       ['الزبون:', info.clientName],
@@ -474,7 +476,6 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
       yPos += 76;
     });
 
-    // تذييل البطاقة
     ctx.textAlign = 'center';
     ctx.fillStyle = '#475569';
     ctx.font = '20px sans-serif';
@@ -488,68 +489,6 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
     link.href = canvas.toDataURL('image/png');
     link.click();
   };
-    const renderLocalQrSvg = (text) => {
-    const size = 21;
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-      hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
-    }
-    const cells = [];
-    for (let r = 0; r < size; r++) {
-      for (let c = 0; c < size; c++) {
-        const isFinder =
-          (r < 7 && c < 7) ||
-          (r < 7 && c >= size - 7) ||
-          (r >= size - 7 && c < 7);
-        const isFinderBorder =
-          isFinder &&
-          (r === 0 || r === 6 || r === size - 7 || r === size - 1 ||
-           c === 0 || c === 6 || c === size - 7 || c === size - 1);
-        const isFinderCore =
-          (r >= 2 && r <= 4 && c >= 2 && c <= 4) ||
-          (r >= 2 && r <= 4 && c >= size - 5 && c <= size - 3) ||
-          (r >= size - 5 && r <= size - 3 && c >= 2 && c <= 4);
-
-        let dark = false;
-        if (isFinder) {
-          dark = isFinderBorder || isFinderCore;
-        } else {
-          const val = Math.abs(Math.sin((r + 1) * 31 + (c + 1) * 17 + hash));
-          dark = val > 0.48;
-        }
-        if (dark) {
-          cells.push(<rect key={`${r}-${c}`} x={c} y={r} width={1} height={1} fill="#0f172a" />);
-        }
-      }
-    }
-    return (
-      <svg
-        viewBox={`0 0 ${size} ${size}`}
-        style={{
-          width: 140,
-          height: 140,
-          margin: '0 auto 16px',
-          display: 'block',
-          borderRadius: 12,
-          border: '1px solid #e2e8f0',
-          padding: 8,
-          background: '#fff'
-        }}
-      >
-        {cells}
-      </svg>
-    );
-  };
-  const [qrImageUrl, setQrImageUrl] = useState('');
-
-  useEffect(() => {
-    if (!bookedInfo) {
-      setQrImageUrl('');
-      return;
-    }
-    const payload = `3ARBOON | ${bookedInfo.ticketCode} | ${bookedInfo.clientName} | ${bookedInfo.date} ${bookedInfo.time}`;
-    generateQrDataUrl(payload).then((url) => setQrImageUrl(url)).catch(() => {});
-  }, [bookedInfo]);
 
   if (bookedInfo) {
     const safeTicket = String(bookedInfo.ticketCode || '3RB-0000');
@@ -567,12 +506,6 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
       'الخدمة: ' + safeService + '\n' +
       'التاريخ: ' + safeDate + ' الساعة ' + safeTime + '\n' +
       'العربون: ' + safeDeposit + ' درهم';
-
-    const qrPayload = encodeURIComponent(
-      '3ARBOON | ' + safeTicket + ' | ' + safeClient + ' | ' + safeDate + ' ' + safeTime
-    );
-
-
 
     return (
       <div style={{ ...pageFont, maxWidth: 440, margin: '20px auto', padding: '0 10px' }}>
@@ -618,14 +551,13 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
               <div><strong>العربون:</strong> {safeDeposit} درهم</div>
             </div>
 
-                      <img
-  src={qrImageUrl}
-  alt="QR Code"
-  style={{ width: 150, height: 150, margin: '0 auto 16px', display: 'block', borderRadius: 12, border: '1px solid #e2e8f0', padding: 6, background: '#fff' }}
-/>
-
-
-
+            {qrImageUrl && (
+              <img
+                src={qrImageUrl}
+                alt="QR Code"
+                style={{ width: 150, height: 150, margin: '0 auto 16px', display: 'block', borderRadius: 12, border: '1px solid #e2e8f0', padding: 6, background: '#fff' }}
+              />
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <button
@@ -660,6 +592,7 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
       </div>
     );
   }
+
   return (
     <div style={{ ...pageFont, maxWidth: 680, margin: '20px auto', padding: '0 14px 40px' }}>
       {/* بطاقة معلومات المحل */}
@@ -842,6 +775,7 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
           {loading ? 'جاري تأكيد الحجز...' : '✅ تأكيد الحجز وإصدار التذكرة'}
         </button>
       </form>
+
       {/* مساعد الذكاء الاصطناعي */}
       <div style={{ background: '#fff', borderRadius: 20, padding: 20, border: '1px solid #e2e8f0', marginBottom: 20 }}>
         <h3 style={{ margin: '0 0 12px', fontSize: 16, color: '#0f172a' }}>🤖 المساعد الذكي للمحل</h3>
