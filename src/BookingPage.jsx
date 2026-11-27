@@ -540,6 +540,16 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
       </svg>
     );
   };
+  const [qrImageUrl, setQrImageUrl] = useState('');
+
+  useEffect(() => {
+    if (!bookedInfo) {
+      setQrImageUrl('');
+      return;
+    }
+    const payload = `3ARBOON | ${bookedInfo.ticketCode} | ${bookedInfo.clientName} | ${bookedInfo.date} ${bookedInfo.time}`;
+    generateQrDataUrl(payload).then((url) => setQrImageUrl(url)).catch(() => {});
+  }, [bookedInfo]);
 
   if (bookedInfo) {
     const safeTicket = String(bookedInfo.ticketCode || '3RB-0000');
@@ -562,7 +572,6 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
       '3ARBOON | ' + safeTicket + ' | ' + safeClient + ' | ' + safeDate + ' ' + safeTime
     );
 
-const qrImageUrl = generateQrDataUrl(`${safeTicket}|${safeClient}|${safeDate} ${safeTime}`);
 
 
     return (
