@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
+import { generateQrDataUrl } from './qrGenerator';
+
 
 export default function BookingPage({ provider = {}, services = [], reviews = [], onSuccess }) {
   const defaultHours = (Array.isArray(provider.working_hours) && provider.working_hours.length > 0)
@@ -538,37 +540,6 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
       </svg>
     );
   };
-  const [qrDataUrl, setQrDataUrl] = useState('');
-
-  useEffect(() => {
-    if (!bookedInfo) {
-      setQrDataUrl('');
-      return;
-    }
-    const payload = `3ARBOON | ${bookedInfo.ticketCode} | ${bookedInfo.clientName} | ${bookedInfo.date} ${bookedInfo.time}`;
-
-    const generateRealQr = () => {
-      if (window.QRCode) {
-        window.QRCode.toDataURL(
-          payload,
-          { width: 220, margin: 2, color: { dark: '#0f172a', light: '#ffffff' } },
-          (err, url) => {
-            if (!err && url) setQrDataUrl(url);
-          }
-        );
-      }
-    };
-
-    if (window.QRCode) {
-      generateRealQr();
-    } else {
-      const script = document.createElement('script');
-      script.src = 'https://jsdelivr.net';
-      script.async = true;
-      script.onload = generateRealQr;
-      document.body.appendChild(script);
-    }
-  }, [bookedInfo]);
 
   if (bookedInfo) {
     const safeTicket = String(bookedInfo.ticketCode || '3RB-0000');
@@ -590,7 +561,8 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
     const qrPayload = encodeURIComponent(
       '3ARBOON | ' + safeTicket + ' | ' + safeClient + ' | ' + safeDate + ' ' + safeTime
     );
-    const qrImageUrl = `https://quickchart.io{qrPayload}`;
+
+const qrImageUrl = generateQrDataUrl(`${safeTicket}|${safeClient}|${safeDate} ${safeTime}`);
 
 
     return (
@@ -637,22 +609,12 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
               <div><strong>العربون:</strong> {safeDeposit} درهم</div>
             </div>
 
-                       {qrDataUrl && (
-              <img
-                src={qrDataUrl}
-                alt="QR Code"
-                style={{
-                  width: 150,
-                  height: 150,
-                  margin: '0 auto 16px',
-                  display: 'block',
-                  borderRadius: 12,
-                  border: '1px solid #e2e8f0',
-                  padding: 6,
-                  background: '#fff'
-                }}
-              />
-            )}
+                      <img
+  src={qrImageUrl}
+  alt="QR Code"
+  style={{ width: 150, height: 150, margin: '0 auto 16px', display: 'block', borderRadius: 12, border: '1px solid #e2e8f0', padding: 6, background: '#fff' }}
+/>
+
 
 
 
