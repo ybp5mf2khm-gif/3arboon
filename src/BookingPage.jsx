@@ -538,6 +538,37 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
       </svg>
     );
   };
+  const [qrDataUrl, setQrDataUrl] = useState('');
+
+  useEffect(() => {
+    if (!bookedInfo) {
+      setQrDataUrl('');
+      return;
+    }
+    const payload = `3ARBOON | ${bookedInfo.ticketCode} | ${bookedInfo.clientName} | ${bookedInfo.date} ${bookedInfo.time}`;
+
+    const generateRealQr = () => {
+      if (window.QRCode) {
+        window.QRCode.toDataURL(
+          payload,
+          { width: 220, margin: 2, color: { dark: '#0f172a', light: '#ffffff' } },
+          (err, url) => {
+            if (!err && url) setQrDataUrl(url);
+          }
+        );
+      }
+    };
+
+    if (window.QRCode) {
+      generateRealQr();
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://jsdelivr.net';
+      script.async = true;
+      script.onload = generateRealQr;
+      document.body.appendChild(script);
+    }
+  }, [bookedInfo]);
 
   if (bookedInfo) {
     const safeTicket = String(bookedInfo.ticketCode || '3RB-0000');
@@ -606,7 +637,23 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
               <div><strong>العربون:</strong> {safeDeposit} درهم</div>
             </div>
 
-           {renderLocalQrSvg(`${safeTicket}|${safeClient}|${safeDate}|${safeTime}`)}
+                       {qrDataUrl && (
+              <img
+                src={qrDataUrl}
+                alt="QR Code"
+                style={{
+                  width: 150,
+                  height: 150,
+                  margin: '0 auto 16px',
+                  display: 'block',
+                  borderRadius: 12,
+                  border: '1px solid #e2e8f0',
+                  padding: 6,
+                  background: '#fff'
+                }}
+              />
+            )}
+
 
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
