@@ -110,41 +110,54 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     }
   };
 
-  const startCameraScan = async () => {
+   const startCameraScan = async () => {
     setScanError('');
     setScannedBooking(null);
-    if (!('BarcodeDetector' in window)) {
-      setScanError('متصفحك لا يدعم المسح المباشر بالكاميرا؛ يمكنك كتابة رقم التذكرة أدناه.');
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setScanError('المتصفح لا يسمح بالوصول للكاميرا (تأكد من فتح الموقع عبر HTTPS).');
       return;
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } }
+      });
       streamRef.current = stream;
       setScanningCamera(true);
+
       setTimeout(async () => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-          const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-          const scanLoop = async () => {
-            if (!streamRef.current || !videoRef.current) return;
-            try {
-              const codes = await detector.detect(videoRef.current);
-              if (codes.length > 0 && codes[0].rawValue) {
-                findBookingByText(codes[0].rawValue);
-                return;
-              }
-            } catch {}
-            requestAnimationFrame(scanLoop);
-          };
-          scanLoop();
-        }
+        if (!videoRef.current) return;
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        const scanLoop = () => {
+          if (!streamRef.current || !videoRef.current) return;
+          const video = videoRef.current;
+          if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+              inversionAttempts: 'dontInvert'
+            });
+            if (code && code.data) {
+              findBookingByText(code.data);
+              return;
+            }
+          }
+          requestAnimationFrame(scanLoop);
+        };
+        requestAnimationFrame(scanLoop);
       }, 200);
     } catch {
-      setScanError('تعذر فتح الكاميرا. تأكد من منح الإذن أو اكتب رقم التذكرة يدوياً.');
+      setScanError('تعذر فتح الكاميرا. تأكد من السماح بإذن الكاميرا في المتصفح.');
       stopCamera();
     }
   };
+
 
   useEffect(() => {
     return () => stopCamera();
