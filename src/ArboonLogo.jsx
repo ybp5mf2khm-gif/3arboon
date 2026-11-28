@@ -18,13 +18,11 @@ export default function ArboonLogo({ variant = 'default', onClick }) {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
 
-      // إزالة الخلفية البيضاء وجعلها شفافة تماماً
       for (let i = 0; i < data.length; i += 4) {
         const r = data[i];
         const g = data[i + 1];
         const b = data[i + 2];
 
-        // حساب درجة البياض لإزالة الخلفية بنعومة دون حواف حادة
         const brightness = (r + g + b) / 3;
         if (r > 235 && g > 235 && b > 235) {
           data[i + 3] = 0;
@@ -32,7 +30,6 @@ export default function ArboonLogo({ variant = 'default', onClick }) {
           data[i + 3] = Math.round(((245 - brightness) / 35) * 255);
         }
 
-        // إذا كان الشعار فوق خلفية داكنة/ملونة، نحول اللون الكحلي الداكن إلى أبيض ناصع مع الإبقاء على الذهبي
         if (isLight && data[i + 3] > 0) {
           const isGold = r > b + 25 && g > b + 10;
           if (!isGold && brightness < 130) {
@@ -85,11 +82,12 @@ export default function ArboonLogo({ variant = 'default', onClick }) {
         src={cleanLogoSrc}
         alt="عربون - 3arboon"
         style={{
-          height: isLight ? 78 : 52,
+          height: isLight ? 105 : 66,
           width: 'auto',
+          maxWidth: '100%',
           objectFit: 'contain',
           display: 'block',
-          filter: isLight ? 'drop-shadow(0 4px 12px rgba(15, 23, 42, 0.25))' : 'none'
+          filter: isLight ? 'drop-shadow(0 6px 16px rgba(15, 23, 42, 0.28))' : 'none'
         }}
       />
     </a>
