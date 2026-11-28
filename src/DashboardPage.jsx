@@ -887,13 +887,27 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                   </div>
 
                   {!scanningCamera ? (
-                    <button
-                      type="button"
-                      onClick={startCameraScan}
-                      style={{ width: '100%', background: '#16a34a', color: '#fff', border: 'none', padding: 10, borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
-                    >
-                      فتح الكاميرا لمسح QR 📷
-                    </button>
+                                   <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    type="button"
+                    onClick={startCameraScan}
+                    style={{ flex: 1, background: '#16a34a', color: '#fff', border: 'none', padding: 10, borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    فتح الكاميرا 📷
+                  </button>
+                  <label
+                    style={{ flex: 1, background: '#0f172a', color: '#fff', padding: 10, borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    رفع صورة QR 🖼️
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleQrImageUpload}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                </div>
+
                   ) : (
                     <div style={{ textAlign: 'center' }}>
                       <video ref={videoRef} style={{ width: '100%', maxHeight: 240, borderRadius: 10, background: '#000' }} playsInline muted />
