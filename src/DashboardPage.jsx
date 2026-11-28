@@ -665,6 +665,169 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     padding: 15,
     marginBottom: 16
   };
+  if (selectedClientPhone) {
+    const targetNorm = formatMoroccanPhone(selectedClientPhone);
+    const clientBookings = bookings
+      .filter((b) => formatMoroccanPhone(b.client_phone) === targetNorm || String(b.client_phone) === String(selectedClientPhone))
+      .sort((a, b) => String(b.booking_date + b.booking_time).localeCompare(String(a.booking_date + a.booking_time)));
+
+    const latestRecord = clientBookings.at(0) || {};
+    const displayName = latestRecord.client_name || 'زبون';
+    const displayPhone = latestRecord.client_phone || selectedClientPhone;
+
+    const confirmedList = clientBookings.filter((b) => b.status === 'confirmed');
+    const totalSpent = confirmedList.reduce((sum, b) => {
+      const srv = services.find((s) => String(s.id) === String(b.service_id));
+      return sum + (srv ? Number(srv.total_price || 0) : 0);
+    }, 0);
+
+    const commitmentRate = clientBookings.length > 0
+      ? Math.round((confirmedList.length / clientBookings.length) * 100)
+      : 0;
+
+    // تحديد الخدمة الأكثر طلباً
+    const serviceCounts = {};
+    clientBookings.forEach((b) => {
+      const srv = services.find((s) => String(s.id) === String(b.service_id));
+      const title = srv ? srv.title : 'خدمة عامة';
+      serviceCounts[title] = (serviceCounts[title] || 0) + 1;
+    });
+    const favoriteService = Object.entries(serviceCounts).sort((a, b) => b.at(1) - a.at(1)).at(0)?.at(0) || '—';
+
+    // تحديد التوقيت المفضل
+    const timeCounts = {};
+    clientBookings.forEach((b) => {
+      if (b.booking_time) timeCounts[b.booking_time] = (timeCounts[b.booking_time] || 0) + 1;
+    });
+    const favoriteTime = Object.entries(timeCounts).sort((a, b) => b.at(1) - a.at(1)).at(0)?.at(0) || '—';
+
+    // تصنيف فئة الزبون
+    const tier = confirmedList.length >= 5
+      ? { label: 'فئة بلاتينية', bg: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', badgeBg: '#e2e8f0', badgeColor: '#0f172a' }
+      : confirmedList.length >= 3
+      ? { label: 'فئة ذهبية', bg: 'linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%)', badgeBg: '#fef3c7', badgeColor: '#92400e' }
+      : confirmedList.length >= 1
+      ? { label: 'زبون منتظم', bg: 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)', badgeBg: '#dbeafe', badgeColor: '#1e3a8a' }
+      : { label: 'زبون جديد', bg: 'linear-gradient(135deg, #334155 0%, #475569 100%)', badgeBg: '#f1f5f9', badgeColor: '#334155' };
+
+    return (
+      <div style={{ ...pageFont, maxWidth: 460, margin: '8px auto', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 10px 25px rgba(15, 23, 42, 0.08)', border: '1px solid #e2e8f0' }}>
+        {/* ترويسة الملف */}
+        <div style={{ background: tier.bg, color: '#fff', padding: '18px 20px 22px' }}>
+          <button
+            type="button"
+            onClick={() => setSelectedClientPhone(null)}
+            style={{ background: 'rgba(255,255,255,0.14)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 16 }}
+          >
+            العودة إلى لوحة التحكم
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 54, height: 54, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800, border: '1px solid rgba(255,255,255,0.35)' }}>
+              {String(displayName).charAt(0)}
+            </div>
+            <div>
+              <span style={{ background: tier.badgeBg, color: tier.badgeColor, padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 800, letterSpacing: 0.3 }}>
+                {tier.label}
+              </span>
+              <h3 style={{ margin: '6px 0 2px', fontSize: 20, fontWeight: 800 }}>{displayName}</h3>
+              <div style={{ fontSize: 13, color: '#cbd5e1', direction: 'ltr', textAlign: 'right', fontFamily: 'monospace' }}>
+                {displayPhone}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ padding: 18 }}>
+          {/* مؤشرات الأداء */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700 }}>الحجوزات المؤكدة</div>
+              <div style={{ fontSize: 19, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>
+                {confirmedList.length} <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>من {clientBookings.length}</span>
+              </div>
+            </div>
+
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700 }}>إجمالي التعاملات</div>
+              <div style={{ fontSize: 19, fontWeight: 800, color: '#15803d', marginTop: 4 }}>
+                {totalSpent} <span style={{ fontSize: 12, fontWeight: 700 }}>درهم</span>
+              </div>
+            </div>
+
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700 }}>الخدمة الأكثر طلباً</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>{favoriteService}</div>
+            </div>
+
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700 }}>نسبة الالتزام والتوقيت</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>
+                {commitmentRate}% — {favoriteTime}
+              </div>
+            </div>
+          </div>
+
+          {/* سجل المواعيد */}
+          <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', marginBottom: 10, borderBottom: '1px solid #e2e8f0', paddingBottom: 8 }}>
+            سجل المواعيد ({clientBookings.length})
+          </div>
+
+          {clientBookings.map((item) => {
+            const srv = services.find((s) => String(s.id) === String(item.service_id));
+            const ticketCode = '3RB-' + String(item.id || '').slice(0, 8).toUpperCase();
+            return (
+              <div key={item.id} style={{ borderRight: '3px solid ' + (item.status === 'confirmed' ? '#15803d' : item.status === 'rejected' ? '#b91c1c' : '#b45309'), background: '#f8fafc', borderRadius: 10, padding: 12, marginBottom: 10, borderTop: '1px solid #e2e8f0', borderLeft: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: '#1e40af', background: '#eff6ff', padding: '2px 8px', borderRadius: 6, border: '1px solid #bfdbfe' }}>
+                    {ticketCode}
+                  </span>
+                  <span style={{
+                    padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700,
+                    background: item.status === 'confirmed' ? '#dcfce7' : item.status === 'rejected' ? '#fee2e2' : '#fef3c7',
+                    color: item.status === 'confirmed' ? '#166534' : item.status === 'rejected' ? '#991b1b' : '#92400e'
+                  }}>
+                    {item.status === 'confirmed' ? 'مؤكد' : item.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة'}
+                  </span>
+                </div>
+
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a' }}>
+                  {srv ? srv.title : 'خدمة محجوزة'}
+                </div>
+                <div style={{ fontSize: 12, color: '#475569', marginTop: 4 }}>
+                  التاريخ: {item.booking_date} | الساعة: {item.booking_time}
+                  {srv ? ` | القيمة: ${srv.total_price} درهم` : ''}
+                </div>
+
+                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                  {item.receipt_url && (
+                    <a
+                      href={item.receipt_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ background: '#fff', color: '#0f172a', border: '1px solid #cbd5e1', padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, textDecoration: 'none' }}
+                    >
+                      عرض الوصل
+                    </a>
+                  )}
+                  {item.status !== 'confirmed' && (
+                    <button
+                      type="button"
+                      disabled={updatingId === item.id}
+                      onClick={() => updateStatus(item, 'confirmed')}
+                      style={{ background: '#15803d', color: '#fff', border: 'none', padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                    >
+                      تأكيد الموعد
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ ...pageFont, maxWidth: 460, margin: '8px auto', background: '#fff', borderRadius: 22, overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.06)' }}>
