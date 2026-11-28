@@ -54,7 +54,7 @@ export default function SubscriptionBanner({ provider = {}, onUpgradeClick }) {
     if (isPaused) return;
     const timer = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % features.length);
-    }, 3600);
+    }, 5000);
     return () => clearInterval(timer);
   }, [isPaused, features.length]);
 
@@ -132,7 +132,7 @@ export default function SubscriptionBanner({ provider = {}, onUpgradeClick }) {
           .arboon-progress-line {
             height: 2px;
             background: linear-gradient(90deg, #b8860b, #f3e5ab);
-            animation: arboonProgressFill 3.6s linear forwards;
+            animation: arboonProgressFill 5s linear forwards;
           }
           .arboon-gold-cta {
             position: relative;
