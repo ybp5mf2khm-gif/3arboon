@@ -157,8 +157,8 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
       stopCamera();
     }
   };
-  const handleQrImageUpload = (e) => {
-    const file = e.target.files ? e.target.files : null;
+   const handleQrImageUpload = (e) => {
+    const file = e.target.files ? e.target.files.item(0) : null;
     if (!file) return;
     setScanError('');
     setScannedBooking(null);
@@ -171,7 +171,9 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'attemptBoth'
+      });
       if (code && code.data) {
         findBookingByText(code.data);
       } else {
@@ -185,6 +187,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
     img.src = URL.createObjectURL(file);
     e.target.value = '';
   };
+
 
 
   useEffect(() => {
