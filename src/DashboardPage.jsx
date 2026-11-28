@@ -19,6 +19,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
   const [price, setPrice] = useState('');
   const [deposit, setDeposit] = useState('');
   const [saving, setSaving] = useState(false);
+  const [selectedClientPhone, setSelectedClientPhone] = useState(null);
   const [copied, setCopied] = useState(false);
   const [updatingId, setUpdatingId] = useState(null);
   const [bizName, setBizName] = useState(provider.business_name || '');
