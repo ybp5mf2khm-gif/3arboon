@@ -611,7 +611,7 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
       </div>
     );
   }
-  return (
+
       return (
     <div className="card-modern" style={{ ...pageFont, maxWidth: 470, margin: '0 auto', overflow: 'hidden', borderTopLeftRadius: 0, borderTopRightRadius: 0, borderTop: 'none' }}>
 
