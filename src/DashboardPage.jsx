@@ -84,20 +84,24 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
   };
 
   const findBookingByText = (rawText) => {
-    const clean = String(rawText || '').trim().toUpperCase();
+    const clean = String(rawText || '').trim();
     if (!clean) return;
     setTicketQuery(clean);
     setScanError('');
 
-    const codeMatch = clean.match(/3RB-([A-Z0-9]+)/);
-    const shortCode = codeMatch ? codeMatch[1] : clean.replace(/^3RB-/, '');
+    const upper = clean.toUpperCase();
+    const codeMatch = upper.match(/3RB-([A-Z0-9]+)/);
+    const shortCode = codeMatch ? codeMatch.at(1) : upper.replace(/^3RB-/, '');
 
     const found = bookings.find((b) => {
       const idUpper = String(b.id || '').toUpperCase();
+      const clientPhone = String(b.client_phone || '');
+      const clientName = String(b.client_name || '').toLowerCase();
       return (
-        idUpper.startsWith(shortCode) ||
-        clean.includes(idUpper.slice(0, 8)) ||
-        String(b.client_phone || '').includes(clean)
+        (shortCode.length >= 4 && idUpper.startsWith(shortCode)) ||
+        (idUpper.length >= 8 && upper.includes(idUpper.slice(0, 8))) ||
+        (clean.length >= 4 && clientPhone.includes(clean)) ||
+        (clean.length >= 2 && clientName.includes(clean.toLowerCase()))
       );
     });
 
@@ -106,9 +110,10 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
       stopCamera();
     } else {
       setScannedBooking(null);
-      setScanError('لم يتم العثور على حجز مطابق لهذا الرمز: ' + clean);
+      setScanError('لم يتم العثور على حجز مطابق لـ: ' + clean);
     }
   };
+
 
    const startCameraScan = async () => {
     setScanError('');
