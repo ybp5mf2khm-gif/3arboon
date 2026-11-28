@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import './theme.css';
+import ArboonLogo from './ArboonLogo.jsx';
 import ChatBotWidget from './ChatBotWidget.jsx';
 import BookingPage from './BookingPage.jsx';
 import DashboardPage from './DashboardPage.jsx';
@@ -228,6 +229,25 @@ export default function App() {
 
   return (
     <div style={appFont}>
+                       {(slug || view !== 'booking') && (
+        <div style={{ maxWidth: 490, margin: '8px auto 4px', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <ArboonLogo
+            variant="default"
+            onClick={() => {
+              if (slug) {
+                window.location.href = '/';
+              } else {
+                setIsUnlocked(false);
+                setView('booking');
+              }
+            }}
+          />
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#4f46e5', background: '#eef2ff', padding: '5px 12px', borderRadius: 999, border: '1px solid #c7d2fe' }}>
+            منصة الحجز الموثوق
+          </span>
+        </div>
+      )}
+
       {view === 'register' && (
         <div style={{ padding: 12 }}>
           <RegisterPage onCancel={() => setView('booking')} />
@@ -261,9 +281,18 @@ export default function App() {
                   <span>منصة الحجز الفوري وتأكيد المواعيد بالمغرب</span>
                 </div>
 
-                <h1 style={{ margin: '0 0 8px', fontSize: 28, fontWeight: 900, letterSpacing: -0.3 }}>
-                  عربون • 3arboon
-                </h1>
+                               <div style={{ marginBottom: 10 }}>
+                  <ArboonLogo
+                    variant="light"
+                    onClick={() => {
+                      setView('booking');
+                      setAiSearchQuery('');
+                      setAiSearchResult('');
+                      setMatchedProviders([]);
+                    }}
+                  />
+                </div>
+
                 <p style={{ color: '#e0e7ff', fontSize: 13, lineHeight: 1.7, margin: '0 auto', maxWidth: 360 }}>
                   احجز موعدك بسهولة مع الصالونات والمشاريع المعتمدة، أو أنشئ صفحة حجز احترافية لمشروعك في دقيقة واحدة.
                 </p>
