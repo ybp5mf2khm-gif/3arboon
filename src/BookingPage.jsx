@@ -639,32 +639,84 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
           </p>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+           <div style={{ display: 'grid', gridTemplateColumns: `repeat(${1 + (avgRating ? 1 : 0) + (mapsUrl ? 1 : 0)}, 1fr)`, gap: 8, marginTop: 14 }}>
           {avgRating && (
-            <span style={{ background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.28)', padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700, color: '#ffffff' }}>
-              التقييم: {avgRating} / 5 ({reviews.length})
-            </span>
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById('arboon-reviews-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="btn-modern-secondary"
+              style={{
+                background: 'rgba(255, 255, 255, 0.14)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                color: '#ffffff',
+                padding: '8px 6px',
+                borderRadius: 12,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 2
+              }}
+            >
+              <span style={{ fontSize: 13, fontWeight: 900, color: '#fde047' }}>{avgRating} / 5</span>
+              <span style={{ fontSize: 10.5, color: '#e0e7ff', fontWeight: 600 }}>التقييمات ({reviews.length})</span>
+            </button>
           )}
+
           {mapsUrl && (
             <a
               href={mapsUrl}
               target="_blank"
               rel="noreferrer"
               className="btn-modern-secondary"
-              style={{ textDecoration: 'none', padding: '5px 12px', borderRadius: 999, fontSize: 12 }}
+              style={{
+                background: 'rgba(255, 255, 255, 0.14)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                color: '#ffffff',
+                padding: '8px 6px',
+                borderRadius: 12,
+                textDecoration: 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 2
+              }}
             >
-              الموقع على الخريطة ↗
+              <span style={{ fontSize: 12.5, fontWeight: 800 }}>الموقع ↗</span>
+              <span style={{ fontSize: 10.5, color: '#e0e7ff', fontWeight: 600 }}>خرائط جوجل</span>
             </a>
           )}
+
           <button
             type="button"
             onClick={() => setShowAssistant(!showAssistant)}
             className="btn-modern-secondary"
-            style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12, color: '#4f46e5' }}
+            style={{
+              background: showAssistant ? '#ffffff' : 'rgba(255, 255, 255, 0.14)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255, 255, 255, 0.35)',
+              color: showAssistant ? '#4f46e5' : '#ffffff',
+              padding: '8px 6px',
+              borderRadius: 12,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 2
+            }}
           >
-            {showAssistant ? 'إغلاق المساعد' : 'استفسار أو ترشيح خدمة'}
+            <span style={{ fontSize: 12.5, fontWeight: 800 }}>
+              {showAssistant ? 'إغلاق المساعد' : 'المساعد الذكي'}
+            </span>
+            <span style={{ fontSize: 10.5, color: showAssistant ? '#6366f1' : '#e0e7ff', fontWeight: 600 }}>
+              استفسار وترشيح
+            </span>
           </button>
         </div>
+
       </div>
 
       <div style={{ padding: 18 }}>
