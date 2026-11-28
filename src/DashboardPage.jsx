@@ -1102,7 +1102,14 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                   {scannedBooking && (
                     <div style={{ background: '#fff', border: '2px solid #2563eb', borderRadius: 12, padding: 12, marginTop: 10 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <strong style={{ fontSize: 15, color: '#0f172a' }}>{scannedBooking.client_name}</strong>
+                       <button
+  type="button"
+  onClick={() => setSelectedClientPhone(scannedBooking.client_phone)}
+  style={{ background: 'none', border: 'none', padding: 0, fontSize: 15, fontWeight: 800, color: '#1e40af', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}
+>
+  {scannedBooking.client_name}
+</button>
+
                         <span style={{
                           padding: '3px 9px', borderRadius: 8, fontSize: 11, fontWeight: 700,
                           background: scannedBooking.status === 'confirmed' ? '#dcfce7' : '#fef9c3',
@@ -1140,7 +1147,14 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             {bookings.map((b) => (
               <div key={b.id} style={{ border: '1px solid #e2e8f0', borderRadius: 14, padding: 14, marginBottom: 12, background: '#f8fafc' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <strong style={{ fontSize: 15, fontWeight: 800, color: '#0f172a' }}>{b.client_name}</strong>
+               <button
+  type="button"
+  onClick={() => setSelectedClientPhone(scannedBooking.client_phone)}
+  style={{ background: 'none', border: 'none', padding: 0, fontSize: 15, fontWeight: 800, color: '#1e40af', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}
+>
+  {scannedBooking.client_name}
+</button>
+
                   <span style={{
                     padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700,
                     background: b.status === 'confirmed' ? '#dcfce7' : b.status === 'rejected' ? '#fee2e2' : '#fef9c3',
