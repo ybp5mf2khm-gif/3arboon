@@ -612,7 +612,9 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
     );
   }
   return (
-    <div className="card-modern" style={{ ...pageFont, maxWidth: 470, margin: '12px auto', overflow: 'hidden' }}>
+      return (
+    <div className="card-modern" style={{ ...pageFont, maxWidth: 470, margin: '0 auto', overflow: 'hidden', borderTopLeftRadius: 0, borderTopRightRadius: 0, borderTop: 'none' }}>
+
       {/* ترويسة هوية المحل بتدرج النيلي الملكي */}
       <div style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg, #312e81 0%, #4f46e5 60%, #6366f1 100%)', color: '#ffffff', padding: '26px 20px 22px', textAlign: 'center' }}>
         <div style={{ position: 'absolute', top: -40, right: -40, width: 150, height: 150, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%)', pointerEvents: 'none' }} />
