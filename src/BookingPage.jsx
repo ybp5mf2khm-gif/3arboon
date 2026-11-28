@@ -52,13 +52,6 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
   };
 
   useEffect(() => {
-    const link = document.createElement('link');
-    link.href = 'https://googleapis.com';
-    link.rel = 'stylesheet';
-    document.head.appendChild(link);
-  }, []);
-
-  useEffect(() => {
     if (!date || !provider.id) {
       setBookedTimes([]);
       return;
@@ -409,20 +402,23 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
     canvas.height = 1040;
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = '#0f172a';
+    ctx.fillStyle = '#312e81';
     ctx.fillRect(0, 0, 720, 1040);
 
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.roundRect(32, 32, 656, 976, 24);
+    ctx.roundRect(32, 32, 656, 976, 28);
     ctx.fill();
 
-    ctx.fillStyle = '#0f172a';
+    const grad = ctx.createLinearGradient(32, 32, 688, 217);
+    grad.addColorStop(0, '#312e81');
+    grad.addColorStop(1, '#4f46e5');
+    ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.roundRect(32, 32, 656, 185, [24, 24, 0, 0]);
+    ctx.roundRect(32, 32, 656, 185, [28, 28, 0, 0]);
     ctx.fill();
 
-    ctx.fillStyle = '#94a3b8';
+    ctx.fillStyle = '#c7d2fe';
     ctx.font = 'bold 20px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('منصة عربون • 3ARBOON', 360, 84);
@@ -431,16 +427,16 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
     ctx.font = 'bold 32px sans-serif';
     ctx.fillText(provider.business_name || 'بطاقة حجز رقمية', 360, 136);
 
-    ctx.fillStyle = '#f3e5ab';
+    ctx.fillStyle = '#6ee7b7';
     ctx.font = 'bold 22px monospace';
     ctx.fillText('رقم التذكرة: ' + info.ticketCode, 360, 186);
 
     ctx.fillStyle = info.autoConfirmed ? '#dcfce7' : '#fef3c7';
     ctx.beginPath();
-    ctx.roundRect(140, 245, 440, 50, 12);
+    ctx.roundRect(140, 245, 440, 50, 14);
     ctx.fill();
 
-    ctx.fillStyle = info.autoConfirmed ? '#166534' : '#92400e';
+    ctx.fillStyle = info.autoConfirmed ? '#065f46' : '#92400e';
     ctx.font = 'bold 22px sans-serif';
     ctx.fillText(
       info.autoConfirmed ? 'موعد مؤكد ومدفوع العربون' : 'في انتظار مراجعة المحل',
@@ -485,10 +481,10 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
         await new Promise((resolve) => {
           const qrImg = new Image();
           qrImg.onload = () => {
-            ctx.strokeStyle = '#cbd5e1';
+            ctx.strokeStyle = '#c7d2fe';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.roundRect(265, 725, 190, 190, 14);
+            ctx.roundRect(265, 725, 190, 190, 16);
             ctx.stroke();
             ctx.drawImage(qrImg, 275, 735, 170, 170);
             resolve();
@@ -503,8 +499,8 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
     ctx.fillStyle = '#475569';
     ctx.font = '19px sans-serif';
     ctx.fillText('يرجى إبراز هذه البطاقة أو مسح الرمز عند الوصول', 360, 950);
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '17px monospace';
+    ctx.fillStyle = '#4f46e5';
+    ctx.font = 'bold 17px monospace';
     ctx.fillText(info.ticketCode + ' • 3arboon.ma', 360, 982);
 
     const link = document.createElement('a');
@@ -512,43 +508,6 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
     link.href = canvas.toDataURL('image/png');
     link.click();
   };
-  const inputStyle = {
-    width: '100%',
-    padding: '11px 12px',
-    margin: '6px 0 12px',
-    borderRadius: 10,
-    border: '1px solid #cbd5e1',
-    background: '#ffffff',
-    color: '#0f172a',
-    boxSizing: 'border-box',
-    fontFamily: 'inherit',
-    fontSize: 13
-  };
-
-  const primaryBtn = {
-    background: '#0f172a',
-    color: '#ffffff',
-    border: 'none',
-    borderRadius: 10,
-    padding: '12px 16px',
-    fontWeight: 700,
-    fontSize: 14,
-    cursor: 'pointer',
-    fontFamily: 'inherit'
-  };
-
-  const secondaryBtn = {
-    background: '#ffffff',
-    color: '#0f172a',
-    border: '1px solid #cbd5e1',
-    borderRadius: 10,
-    padding: '9px 12px',
-    fontWeight: 700,
-    fontSize: 12,
-    cursor: 'pointer',
-    fontFamily: 'inherit'
-  };
-
   if (bookedInfo) {
     const safeTicket = String(bookedInfo.ticketCode || '3RB-0000');
     const safeClient = String(bookedInfo.clientName || '');
@@ -558,52 +517,52 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
     const safeTime = String(bookedInfo.time || '');
 
     return (
-      <div style={{ ...pageFont, maxWidth: 460, margin: '12px auto', background: '#ffffff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 8px 25px rgba(15, 23, 42, 0.08)', border: '1px solid #e2e8f0' }}>
-        <div style={{ background: '#0f172a', color: '#ffffff', padding: '24px 20px', textAlign: 'center' }}>
-          <span style={{ display: 'inline-block', background: 'rgba(255,255,255,0.12)', padding: '3px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>
+      <div className="card-modern" style={{ ...pageFont, maxWidth: 470, margin: '12px auto', overflow: 'hidden' }}>
+        <div style={{ background: 'linear-gradient(135deg, #312e81 0%, #4f46e5 100%)', color: '#ffffff', padding: '26px 20px', textAlign: 'center' }}>
+          <span style={{ display: 'inline-block', background: 'rgba(255,255,255,0.16)', padding: '4px 14px', borderRadius: 999, fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>
             تذكرة موعد رقمية
           </span>
-          <h3 style={{ margin: '10px 0 4px', fontSize: 20, fontWeight: 800 }}>
+          <h3 style={{ margin: '10px 0 6px', fontSize: 21, fontWeight: 800 }}>
             {bookedInfo.autoConfirmed ? 'تم تأكيد حجزك بنجاح' : 'تم إرسال طلب الحجز'}
           </h3>
-          <div style={{ display: 'inline-block', background: 'rgba(212, 175, 55, 0.16)', border: '1px solid rgba(212, 175, 55, 0.4)', color: '#f3e5ab', padding: '4px 12px', borderRadius: 8, fontSize: 13, fontWeight: 800, fontFamily: 'monospace', marginTop: 6 }}>
+          <div style={{ display: 'inline-block', background: 'rgba(16, 185, 129, 0.18)', border: '1px solid rgba(110, 231, 183, 0.45)', color: '#6ee7b7', padding: '5px 14px', borderRadius: 10, fontSize: 13.5, fontWeight: 800, fontFamily: 'monospace', marginTop: 4 }}>
             {safeTicket}
           </div>
         </div>
 
         <div style={{ padding: 20 }}>
           <div style={{
-            padding: '10px 12px',
-            borderRadius: 10,
-            fontSize: 12,
+            padding: '11px 14px',
+            borderRadius: 12,
+            fontSize: 12.5,
             fontWeight: 700,
             textAlign: 'center',
             marginBottom: 16,
-            background: bookedInfo.autoConfirmed ? '#f0fdf4' : '#fffbeb',
-            border: bookedInfo.autoConfirmed ? '1px solid #bbf7d0' : '1px solid #fde68a',
-            color: bookedInfo.autoConfirmed ? '#166534' : '#92400e'
+            background: bookedInfo.autoConfirmed ? '#ecfdf5' : '#fffbeb',
+            border: bookedInfo.autoConfirmed ? '1px solid #a7f3d0' : '1px solid #fde68a',
+            color: bookedInfo.autoConfirmed ? '#065f46' : '#92400e'
           }}>
             {bookedInfo.autoConfirmed
               ? 'تم التحقق من وصل العربون وتأكيد الموعد تلقائياً.'
               : 'طلبك قيد المراجعة وسيتم إشعارك فور تأكيد الوصل.'}
           </div>
 
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 14, padding: 14, marginBottom: 16, fontSize: 13 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #e2e8f0' }}>
+          <div style={{ background: '#f8faff', border: '1px solid #e0e7ff', borderRadius: 16, padding: 14, marginBottom: 16, fontSize: 13 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #e0e7ff' }}>
               <span style={{ color: '#64748b' }}>الزبون:</span>
               <strong style={{ color: '#0f172a' }}>{safeClient}</strong>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #e0e7ff' }}>
               <span style={{ color: '#64748b' }}>الخدمة:</span>
               <strong style={{ color: '#0f172a' }}>{safeService}</strong>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #e0e7ff' }}>
               <span style={{ color: '#64748b' }}>التاريخ والوقت:</span>
               <strong style={{ color: '#0f172a' }}>{safeDate} | {safeTime}</strong>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0' }}>
               <span style={{ color: '#64748b' }}>مبلغ العربون:</span>
-              <strong style={{ color: '#15803d' }}>{safeDeposit} درهم</strong>
+              <strong style={{ color: '#059669' }}>{safeDeposit} درهم</strong>
             </div>
           </div>
 
@@ -612,17 +571,18 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
               <img
                 src={qrImageUrl}
                 alt="QR Code"
-                style={{ width: 145, height: 145, margin: '0 auto 8px', display: 'block', borderRadius: 12, border: '1px solid #cbd5e1', padding: 6, background: '#ffffff' }}
+                style={{ width: 150, height: 150, margin: '0 auto 8px', display: 'block', borderRadius: 16, border: '2px solid #e0e7ff', padding: 8, background: '#ffffff', boxShadow: '0 6px 16px rgba(79,70,229,0.08)' }}
               />
-              <span style={{ fontSize: 11, color: '#64748b' }}>يُرجى إبراز هذا الرمز عند الوصول للمحل</span>
+              <span style={{ fontSize: 11.5, color: '#64748b', fontWeight: 600 }}>يُرجى إبراز هذا الرمز عند الوصول للمحل</span>
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
             <button
               type="button"
               onClick={() => downloadTicketImage(bookedInfo)}
-              style={{ ...primaryBtn, width: '100%' }}
+              className="btn-modern-primary"
+              style={{ width: '100%' }}
             >
               تحميل التذكرة كصورة (PNG)
             </button>
@@ -632,7 +592,8 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
                 href={buildWhatsAppUrl(`مرحبا ${provider.business_name || ''}، قمت بحجز موعد (${safeTicket}) ليوم ${safeDate} الساعة ${safeTime}.`)}
                 target="_blank"
                 rel="noreferrer"
-                style={{ ...secondaryBtn, textAlign: 'center', textDecoration: 'none', padding: 11 }}
+                className="btn-modern-secondary"
+                style={{ textAlign: 'center', textDecoration: 'none' }}
               >
                 إرسال التذكرة عبر واتساب
               </a>
@@ -641,7 +602,7 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
             <button
               type="button"
               onClick={() => setBookedInfo(null)}
-              style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 8, fontFamily: 'inherit' }}
+              style={{ background: 'none', border: 'none', color: '#4f46e5', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', padding: 8, fontFamily: 'inherit' }}
             >
               حجز موعد جديد
             </button>
@@ -651,34 +612,36 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
     );
   }
   return (
-    <div style={{ ...pageFont, maxWidth: 460, margin: '12px auto', background: '#ffffff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)', border: '1px solid #e2e8f0' }}>
-      {/* ترويسة هوية المحل النظيفة */}
-      <div style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0', padding: '22px 20px 18px', textAlign: 'center' }}>
+    <div className="card-modern" style={{ ...pageFont, maxWidth: 470, margin: '12px auto', overflow: 'hidden' }}>
+      {/* ترويسة هوية المحل بتدرج النيلي الملكي */}
+      <div style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg, #312e81 0%, #4f46e5 60%, #6366f1 100%)', color: '#ffffff', padding: '26px 20px 22px', textAlign: 'center' }}>
+        <div style={{ position: 'absolute', top: -40, right: -40, width: 150, height: 150, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
         {provider.logo_url ? (
           <img
             src={provider.logo_url}
             alt={provider.business_name}
-            style={{ width: 68, height: 68, borderRadius: '50%', objectFit: 'cover', border: '1px solid #cbd5e1', marginBottom: 10 }}
+            style={{ width: 74, height: 74, borderRadius: '50%', objectFit: 'cover', border: '3px solid rgba(255,255,255,0.85)', boxShadow: '0 8px 20px rgba(15,23,42,0.2)', marginBottom: 10 }}
           />
         ) : (
-          <div style={{ width: 60, height: 60, borderRadius: 16, background: '#0f172a', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 800, margin: '0 auto 10px' }}>
+          <div style={{ width: 66, height: 66, borderRadius: 20, background: 'rgba(255,255,255,0.16)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.3)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 900, margin: '0 auto 10px' }}>
             {String(provider.business_name || 'ع').charAt(0)}
           </div>
         )}
 
-        <h2 style={{ margin: '0 0 4px', fontSize: 21, fontWeight: 800, color: '#0f172a' }}>
+        <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 900 }}>
           {provider.business_name || 'صفحة الحجز'}
         </h2>
 
         {provider.bio && (
-          <p style={{ margin: '4px auto 10px', fontSize: 12.5, color: '#64748b', maxWidth: 360, lineHeight: 1.6 }}>
+          <p style={{ margin: '6px auto 12px', fontSize: 12.5, color: '#e0e7ff', maxWidth: 360, lineHeight: 1.6 }}>
             {provider.bio}
           </p>
         )}
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
           {avgRating && (
-            <span style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: 8, fontSize: 12, fontWeight: 700, color: '#0f172a' }}>
+            <span style={{ background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.28)', padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700, color: '#ffffff' }}>
               التقييم: {avgRating} / 5 ({reviews.length})
             </span>
           )}
@@ -687,15 +650,17 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
               href={mapsUrl}
               target="_blank"
               rel="noreferrer"
-              style={{ ...secondaryBtn, textDecoration: 'none', padding: '4px 10px', fontSize: 12 }}
+              className="btn-modern-secondary"
+              style={{ textDecoration: 'none', padding: '5px 12px', borderRadius: 999, fontSize: 12 }}
             >
-              الموقع على الخريطة
+              الموقع على الخريطة ↗
             </a>
           )}
           <button
             type="button"
             onClick={() => setShowAssistant(!showAssistant)}
-            style={{ ...secondaryBtn, padding: '4px 10px', fontSize: 12, background: showAssistant ? '#f1f5f9' : '#ffffff' }}
+            className="btn-modern-secondary"
+            style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12, color: '#4f46e5' }}
           >
             {showAssistant ? 'إغلاق المساعد' : 'استفسار أو ترشيح خدمة'}
           </button>
@@ -705,9 +670,9 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
       <div style={{ padding: 18 }}>
         {/* المساعد الذكي القابل للطي */}
         {showAssistant && (
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 14, padding: 14, marginBottom: 16 }}>
+          <div style={{ background: '#f8faff', border: '1px solid #e0e7ff', borderRadius: 16, padding: 14, marginBottom: 16 }}>
             <div style={{ marginBottom: 12 }}>
-              <strong style={{ display: 'block', fontSize: 12.5, color: '#0f172a', marginBottom: 4 }}>
+              <strong style={{ display: 'block', fontSize: 12.5, color: '#312e81', marginBottom: 6 }}>
                 اسأل موظف الاستقبال الذكي
               </strong>
               <form onSubmit={handleAskReceptionistAI} style={{ display: 'flex', gap: 6 }}>
@@ -716,21 +681,22 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
                   placeholder="مثال: ما هي أوقات العمل أو الأسعار؟"
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
-                  style={{ ...inputStyle, margin: 0, flex: 1 }}
+                  className="input-modern"
+                  style={{ flex: 1, padding: '10px 12px', background: '#ffffff' }}
                 />
-                <button type="submit" disabled={askingReceptionist} style={{ ...primaryBtn, padding: '0 14px', fontSize: 12 }}>
+                <button type="submit" disabled={askingReceptionist} className="btn-modern-primary" style={{ padding: '0 16px', fontSize: 12 }}>
                   {askingReceptionist ? '...' : 'اسأل'}
                 </button>
               </form>
               {receptionistReply && (
-                <div style={{ marginTop: 8, background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 10, padding: 10, fontSize: 12.5, color: '#1e293b', lineHeight: 1.6 }}>
+                <div style={{ marginTop: 8, background: '#ffffff', border: '1px solid #e0e7ff', borderRadius: 12, padding: 10, fontSize: 12.5, color: '#1e293b', lineHeight: 1.6 }}>
                   {receptionistReply}
                 </div>
               )}
             </div>
 
-            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 12 }}>
-              <strong style={{ display: 'block', fontSize: 12.5, color: '#0f172a', marginBottom: 4 }}>
+            <div style={{ borderTop: '1px solid #e0e7ff', paddingTop: 12 }}>
+              <strong style={{ display: 'block', fontSize: 12.5, color: '#312e81', marginBottom: 6 }}>
                 ترشيح الخدمة الأنسب لك
               </strong>
               <form onSubmit={handleMatchServiceAI} style={{ display: 'flex', gap: 6 }}>
@@ -739,14 +705,15 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
                   placeholder="صف ما تحتاجه وسنرشح لك الخدمة..."
                   value={clientNeed}
                   onChange={(e) => setClientNeed(e.target.value)}
-                  style={{ ...inputStyle, margin: 0, flex: 1 }}
+                  className="input-modern"
+                  style={{ flex: 1, padding: '10px 12px', background: '#ffffff' }}
                 />
-                <button type="submit" disabled={matchingService} style={{ ...primaryBtn, padding: '0 14px', fontSize: 12 }}>
+                <button type="submit" disabled={matchingService} className="btn-modern-primary" style={{ padding: '0 16px', fontSize: 12 }}>
                   {matchingService ? '...' : 'رشّح'}
                 </button>
               </form>
               {serviceMatchReply && (
-                <div style={{ marginTop: 8, background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 10, padding: 10, fontSize: 12.5, color: '#1e293b', lineHeight: 1.6 }}>
+                <div style={{ marginTop: 8, background: '#ffffff', border: '1px solid #e0e7ff', borderRadius: 12, padding: 10, fontSize: 12.5, color: '#1e293b', lineHeight: 1.6 }}>
                   {serviceMatchReply}
                 </div>
               )}
@@ -755,7 +722,7 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
         )}
 
         {/* مؤشر الخطوات الثلاث */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, background: '#f8fafc', padding: '10px 14px', borderRadius: 12, border: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, background: '#f8faff', padding: '10px 16px', borderRadius: 14, border: '1px solid #e0e7ff' }}>
           {[
             { num: 1, label: 'الخدمة' },
             { num: 2, label: 'الموعد' },
@@ -763,22 +730,23 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
           ].map((step) => {
             const active = currentStep >= step.num;
             return (
-              <div key={step.num} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div key={step.num} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                 <span style={{
-                  width: 22,
-                  height: 22,
+                  width: 24,
+                  height: 24,
                   borderRadius: '50%',
-                  background: active ? '#0f172a' : '#e2e8f0',
+                  background: active ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : '#e2e8f0',
                   color: active ? '#ffffff' : '#64748b',
-                  fontSize: 11,
+                  fontSize: 11.5,
                   fontWeight: 800,
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  boxShadow: active ? '0 4px 10px rgba(79,70,229,0.3)' : 'none'
                 }}>
                   {step.num}
                 </span>
-                <span style={{ fontSize: 12, fontWeight: active ? 800 : 600, color: active ? '#0f172a' : '#64748b' }}>
+                <span style={{ fontSize: 12.5, fontWeight: active ? 800 : 600, color: active ? '#312e81' : '#64748b' }}>
                   {step.label}
                 </span>
               </div>
@@ -788,11 +756,11 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
         <form onSubmit={handleSubmit}>
           {/* الخطوة 1: اختيار الخدمة */}
           <div style={{ marginBottom: 18 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 8 }}>
+            <label style={{ display: 'block', fontSize: 13.5, fontWeight: 800, color: '#0f172a', marginBottom: 8 }}>
               1. اختر الخدمة المطلوبة
             </label>
             {services.length === 0 ? (
-              <div style={{ padding: 14, background: '#f8fafc', borderRadius: 10, fontSize: 13, color: '#64748b', textAlign: 'center', border: '1px solid #e2e8f0' }}>
+              <div style={{ padding: 14, background: '#f8fafc', borderRadius: 12, fontSize: 13, color: '#64748b', textAlign: 'center', border: '1px solid #e2e8f0' }}>
                 لا توجد خدمات متاحة حالياً.
               </div>
             ) : (
@@ -803,15 +771,17 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
                     <div
                       key={srv.id}
                       onClick={() => setServiceId(srv.id)}
+                      className="card-modern-hover"
                       style={{
-                        padding: '12px 14px',
-                        borderRadius: 12,
-                        border: isSelected ? '1.5px solid #0f172a' : '1px solid #e2e8f0',
-                        background: isSelected ? '#f8fafc' : '#ffffff',
+                        padding: '13px 15px',
+                        borderRadius: 14,
+                        border: isSelected ? '2px solid #4f46e5' : '1px solid #e2e8f0',
+                        background: isSelected ? '#f8faff' : '#ffffff',
                         cursor: 'pointer',
                         display: 'flex',
                         justifyContent: 'space-between',
-                        alignItems: 'center'
+                        alignItems: 'center',
+                        transition: 'all 0.2s ease'
                       }}
                     >
                       <div>
@@ -821,7 +791,15 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
                         </div>
                       </div>
                       <div style={{ textAlign: 'left' }}>
-                        <span style={{ display: 'inline-block', background: isSelected ? '#0f172a' : '#f1f5f9', color: isSelected ? '#ffffff' : '#0f172a', padding: '4px 10px', borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
+                        <span style={{
+                          display: 'inline-block',
+                          background: isSelected ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : '#eef2ff',
+                          color: isSelected ? '#ffffff' : '#4f46e5',
+                          padding: '5px 11px',
+                          borderRadius: 9,
+                          fontSize: 12,
+                          fontWeight: 800
+                        }}>
                           العربون: {srv.deposit_amount} درهم
                         </span>
                       </div>
@@ -834,7 +812,7 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
 
           {/* الخطوة 2: اختيار التاريخ والوقت */}
           <div style={{ marginBottom: 18 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 6 }}>
+            <label style={{ display: 'block', fontSize: 13.5, fontWeight: 800, color: '#0f172a', marginBottom: 6 }}>
               2. اختر التاريخ والساعة
             </label>
             <input
@@ -845,22 +823,23 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
                 setDate(e.target.value);
                 setTime('');
               }}
-              style={inputStyle}
+              className="input-modern"
+              style={{ marginBottom: 12 }}
               required
             />
 
             {date && isSelectedDateClosed && (
-              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: 12, borderRadius: 10, fontSize: 12.5, fontWeight: 700, marginBottom: 10 }}>
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: 12, borderRadius: 12, fontSize: 12.5, fontWeight: 700, marginBottom: 10 }}>
                 المحل مغلق في هذا اليوم (عطلة). يرجى اختيار تاريخ آخر.
               </div>
             )}
 
             {date && !isSelectedDateClosed && (
               <div>
-                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8, fontWeight: 600 }}>
+                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8, fontWeight: 700 }}>
                   {checkingSlots ? 'جاري التحقق من الأوقات المتاحة...' : 'اختر الساعة المناسبة:'}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, direction: 'ltr' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 7, direction: 'ltr' }}>
                   {defaultHours.map((hr) => {
                     const isBooked = bookedTimes.includes(hr);
                     const isPicked = time === hr;
@@ -870,17 +849,14 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
                         type="button"
                         disabled={isBooked}
                         onClick={() => setTime(hr)}
+                        className={isPicked ? 'btn-modern-primary' : 'btn-modern-secondary'}
                         style={{
                           padding: '9px 4px',
-                          borderRadius: 8,
-                          border: isPicked ? '1.5px solid #0f172a' : '1px solid #cbd5e1',
-                          background: isBooked ? '#f1f5f9' : isPicked ? '#0f172a' : '#ffffff',
-                          color: isBooked ? '#94a3b8' : isPicked ? '#ffffff' : '#0f172a',
-                          textDecoration: isBooked ? 'line-through' : 'none',
-                          fontWeight: 700,
+                          borderRadius: 10,
                           fontSize: 13,
-                          cursor: isBooked ? 'not-allowed' : 'pointer',
-                          fontFamily: 'inherit'
+                          opacity: isBooked ? 0.45 : 1,
+                          textDecoration: isBooked ? 'line-through' : 'none',
+                          cursor: isBooked ? 'not-allowed' : 'pointer'
                         }}
                       >
                         {hr}
@@ -892,35 +868,37 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
             )}
           </div>
           {/* الخطوة 3: بيانات الزبون وتحويل العربون */}
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 14, padding: 14, marginBottom: 18 }}>
-            <strong style={{ display: 'block', fontSize: 13, color: '#0f172a', marginBottom: 10 }}>
+          <div style={{ background: '#f8faff', border: '1px solid #e0e7ff', borderRadius: 16, padding: 16, marginBottom: 18 }}>
+            <strong style={{ display: 'block', fontSize: 13.5, color: '#312e81', marginBottom: 12 }}>
               3. البيانات الشخصية وتحويل العربون
             </strong>
 
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>الاسم الكامل</label>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>الاسم الكامل</label>
             <input
               type="text"
               placeholder="أدخل اسمك الكامل"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              style={inputStyle}
+              className="input-modern"
+              style={{ background: '#ffffff', marginBottom: 12 }}
               required
             />
 
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>رقم الهاتف (واتساب)</label>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>رقم الهاتف (واتساب)</label>
             <input
               type="tel"
               placeholder="06XXXXXXXX"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              style={inputStyle}
+              className="input-modern"
+              style={{ background: '#ffffff', marginBottom: 12 }}
               required
             />
 
             {paymentList.length > 0 && (
-              <div style={{ marginTop: 8, marginBottom: 12 }}>
+              <div style={{ marginTop: 6, marginBottom: 14 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>
-                  حسابات تحويل العربون ({selectedSrv ? selectedSrv.deposit_amount : 0} درهم):
+                  حسابات تحويل العربون (<span style={{ color: '#059669' }}>{selectedSrv ? selectedSrv.deposit_amount : 0} درهم</span>):
                 </div>
                 {paymentList.map((pm, idx) => (
                   <div
@@ -928,8 +906,8 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
                     style={{
                       background: '#ffffff',
                       border: '1px solid #cbd5e1',
-                      borderRadius: 10,
-                      padding: '9px 12px',
+                      borderRadius: 12,
+                      padding: '10px 12px',
                       marginBottom: 6,
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -946,13 +924,8 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
                     <button
                       type="button"
                       onClick={() => copyAccount(pm.account)}
-                      style={{
-                        ...secondaryBtn,
-                        padding: '5px 10px',
-                        fontSize: 11,
-                        background: copiedAcc === pm.account ? '#0f172a' : '#ffffff',
-                        color: copiedAcc === pm.account ? '#ffffff' : '#0f172a'
-                      }}
+                      className={copiedAcc === pm.account ? 'btn-modern-accent' : 'btn-modern-secondary'}
+                      style={{ padding: '6px 12px', fontSize: 11.5, borderRadius: 9 }}
                     >
                       {copiedAcc === pm.account ? 'تم النسخ' : 'نسخ'}
                     </button>
@@ -968,12 +941,13 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
               type="file"
               accept="image/*"
               onChange={(e) => setFile(e.target.files ? e.target.files.item(0) : null)}
-              style={{ ...inputStyle, padding: 9, background: '#ffffff' }}
+              className="input-modern"
+              style={{ padding: 9, background: '#ffffff', marginBottom: 14 }}
               required
             />
 
             {msg && (
-              <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, marginBottom: 10, textAlign: 'center' }}>
+              <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', color: '#3730a3', padding: 10, borderRadius: 12, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: 'center' }}>
                 {msg}
               </div>
             )}
@@ -981,7 +955,8 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
             <button
               type="submit"
               disabled={loading || isSelectedDateClosed}
-              style={{ ...primaryBtn, width: '100%', padding: 13, fontSize: 14, opacity: loading ? 0.7 : 1 }}
+              className="btn-modern-accent"
+              style={{ width: '100%', padding: 14, fontSize: 14.5 }}
             >
               {loading ? 'جاري إرسال الحجز...' : 'تأكيد الحجز وإرسال الوصل'}
             </button>
@@ -991,7 +966,8 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
                 href={buildWhatsAppUrl(inquiryWaText)}
                 target="_blank"
                 rel="noreferrer"
-                style={{ ...secondaryBtn, display: 'block', textAlign: 'center', textDecoration: 'none', marginTop: 8, padding: 10 }}
+                className="btn-modern-secondary"
+                style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginTop: 9, padding: 11 }}
               >
                 تواصل مع المحل للاستفسار
               </a>
@@ -1002,7 +978,7 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
         {/* قسم تقييمات الزبائن */}
         <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <strong style={{ fontSize: 14, color: '#0f172a' }}>
+            <strong style={{ fontSize: 14.5, color: '#0f172a' }}>
               آراء وتقييمات الزبائن ({reviews.length})
             </strong>
             {reviews.length > 1 && (
@@ -1010,7 +986,8 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
                 type="button"
                 disabled={summarizingReviews}
                 onClick={handleSummarizeReviewsAI}
-                style={{ ...secondaryBtn, padding: '5px 10px', fontSize: 11 }}
+                className="btn-modern-secondary"
+                style={{ padding: '5px 11px', fontSize: 11.5 }}
               >
                 {summarizingReviews ? 'جاري التلخيص...' : 'ملخص الآراء'}
               </button>
@@ -1018,7 +995,7 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
           </div>
 
           {reviewsSummary && (
-            <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 10, padding: 12, fontSize: 12.5, color: '#1e293b', lineHeight: 1.6, marginBottom: 12 }}>
+            <div style={{ background: '#f8faff', border: '1px solid #e0e7ff', borderRadius: 12, padding: 12, fontSize: 12.5, color: '#1e293b', lineHeight: 1.6, marginBottom: 12 }}>
               {reviewsSummary}
             </div>
           )}
@@ -1026,38 +1003,40 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
           {reviews.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
               {reviews.slice(0, 5).map((r) => (
-                <div key={r.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 10 }}>
+                <div key={r.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 11 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <strong style={{ fontSize: 13, color: '#0f172a' }}>{r.client_name}</strong>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#0f172a', background: '#ffffff', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: 6 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: '#4f46e5', background: '#eef2ff', border: '1px solid #c7d2fe', padding: '2px 8px', borderRadius: 7 }}>
                       {r.rating} / 5
                     </span>
                   </div>
                   {r.comment && (
-                    <p style={{ margin: 0, fontSize: 12, color: '#475569', lineHeight: 1.5 }}>{r.comment}</p>
+                    <p style={{ margin: 0, fontSize: 12.5, color: '#475569', lineHeight: 1.5 }}>{r.comment}</p>
                   )}
                 </div>
               ))}
             </div>
           )}
 
-          <form onSubmit={handleAddReview} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 12 }}>
-            <strong style={{ display: 'block', fontSize: 12.5, color: '#0f172a', marginBottom: 8 }}>
+          <form onSubmit={handleAddReview} style={{ background: '#f8faff', border: '1px solid #e0e7ff', borderRadius: 14, padding: 14 }}>
+            <strong style={{ display: 'block', fontSize: 13, color: '#312e81', marginBottom: 10 }}>
               أضف تقييمك
             </strong>
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
               <input
                 type="text"
                 placeholder="اسمك"
                 value={revName}
                 onChange={(e) => setRevName(e.target.value)}
-                style={{ ...inputStyle, margin: 0, flex: 2 }}
+                className="input-modern"
+                style={{ flex: 2, background: '#ffffff' }}
                 required
               />
               <select
                 value={revRating}
                 onChange={(e) => setRevRating(e.target.value)}
-                style={{ ...inputStyle, margin: 0, flex: 1 }}
+                className="input-modern"
+                style={{ flex: 1, background: '#ffffff' }}
               >
                 <option value="5">5 / 5</option>
                 <option value="4">4 / 5</option>
@@ -1071,9 +1050,10 @@ export default function BookingPage({ provider = {}, services = [], reviews = []
               placeholder="اكتب تعليقك باختصار (اختياري)"
               value={revComment}
               onChange={(e) => setRevComment(e.target.value)}
-              style={{ ...inputStyle, marginTop: 8, marginBottom: 8 }}
+              className="input-modern"
+              style={{ marginTop: 8, marginBottom: 10, background: '#ffffff' }}
             />
-            <button type="submit" disabled={sendingRev} style={{ ...secondaryBtn, width: '100%', padding: 9 }}>
+            <button type="submit" disabled={sendingRev} className="btn-modern-secondary" style={{ width: '100%', padding: 10 }}>
               {sendingRev ? 'جاري الإرسال...' : 'نشر التقييم'}
             </button>
           </form>
