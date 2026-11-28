@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
+import './theme.css';
 import ChatBotWidget from './ChatBotWidget.jsx';
 import BookingPage from './BookingPage.jsx';
 import DashboardPage from './DashboardPage.jsx';
@@ -31,13 +32,6 @@ export default function App() {
   const params = new URLSearchParams(window.location.search);
   const isAdminRoute = params.get('admin') === 'true';
   const slug = params.get('p');
-
-  useEffect(() => {
-    const link = document.createElement('link');
-    link.href = 'https://googleapis.com';
-    link.rel = 'stylesheet';
-    document.head.appendChild(link);
-  }, []);
 
   const loadProviderDetails = async (prov) => {
     setProvider(prov);
@@ -216,40 +210,18 @@ export default function App() {
     return null;
   };
 
-  const appFont = {
-    fontFamily: "'Cairo', -apple-system, BlinkMacSystemFont, sans-serif",
-    direction: 'rtl',
-    color: '#0f172a'
-  };
-
-  const primaryBtn = {
-    background: '#0f172a',
-    color: '#ffffff',
-    border: 'none',
-    borderRadius: 12,
-    padding: '13px 16px',
-    fontWeight: 700,
-    fontSize: 14,
-    cursor: 'pointer',
-    fontFamily: 'inherit'
-  };
-
-  const secondaryBtn = {
-    background: '#ffffff',
-    color: '#0f172a',
-    border: '1px solid #cbd5e1',
-    borderRadius: 12,
-    padding: '11px 14px',
-    fontWeight: 700,
-    fontSize: 13,
-    cursor: 'pointer',
-    fontFamily: 'inherit'
-  };
+  const appFont = { direction: 'rtl' };
 
   if (loading) {
     return (
-      <div style={{ ...appFont, textAlign: 'center', marginTop: 90, color: '#0f172a', fontWeight: 700, fontSize: 15 }}>
-        جاري تحميل منصة عربون...
+      <div style={{ ...appFont, textAlign: 'center', marginTop: 100 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: '#ffffff', padding: '12px 22px', borderRadius: 999, boxShadow: '0 8px 24px rgba(79,70,229,0.12)', border: '1px solid #e0e7ff' }}>
+          <span className="live-dot-wrap">
+            <span className="live-dot-ring" />
+            <span className="live-dot-core" />
+          </span>
+          <span style={{ color: '#4f46e5', fontWeight: 800, fontSize: 14 }}>جاري تحميل منصة عربون...</span>
+        </div>
       </div>
     );
   }
@@ -274,53 +246,67 @@ export default function App() {
           : allProviders;
 
         return (
-          <div style={{ padding: 12, maxWidth: 480, margin: '12px auto' }}>
-            <div style={{ background: '#ffffff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)', border: '1px solid #e2e8f0' }}>
-              {/* ترويسة المنصة الرسمية */}
-              <div style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0', padding: '28px 20px 22px', textAlign: 'center' }}>
-                <span style={{ display: 'inline-block', background: '#f1f5f9', color: '#334155', padding: '4px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, letterSpacing: 0.4, marginBottom: 10 }}>
-                  منصة الحجز وتأكيد المواعيد بالمغرب
-                </span>
-                <h1 style={{ margin: '0 0 8px', fontSize: 26, fontWeight: 800, color: '#0f172a' }}>
+          <div style={{ padding: 14, maxWidth: 490, margin: '12px auto' }}>
+            <div className="card-modern" style={{ overflow: 'hidden' }}>
+              {/* ترويسة عصرية بتدرج النيلي الملكي */}
+              <div style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg, #312e81 0%, #4f46e5 55%, #6366f1 100%)', color: '#ffffff', padding: '32px 22px 28px', textAlign: 'center' }}>
+                <div style={{ position: 'absolute', top: -50, left: -50, width: 170, height: 170, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.16) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', bottom: -60, right: -40, width: 190, height: 190, borderRadius: '50%', background: 'radial-gradient(circle, rgba(16,185,129,0.22) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255, 255, 255, 0.14)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255, 255, 255, 0.25)', padding: '5px 14px', borderRadius: 999, fontSize: 11.5, fontWeight: 700, marginBottom: 12 }}>
+                  <span className="live-dot-wrap">
+                    <span className="live-dot-ring" />
+                    <span className="live-dot-core" />
+                  </span>
+                  <span>منصة الحجز الفوري وتأكيد المواعيد بالمغرب</span>
+                </div>
+
+                <h1 style={{ margin: '0 0 8px', fontSize: 28, fontWeight: 900, letterSpacing: -0.3 }}>
                   عربون • 3arboon
                 </h1>
-                <p style={{ color: '#64748b', fontSize: 13, lineHeight: 1.7, margin: '0 auto', maxWidth: 360 }}>
+                <p style={{ color: '#e0e7ff', fontSize: 13, lineHeight: 1.7, margin: '0 auto', maxWidth: 360 }}>
                   احجز موعدك بسهولة مع الصالونات والمشاريع المعتمدة، أو أنشئ صفحة حجز احترافية لمشروعك في دقيقة واحدة.
                 </p>
               </div>
 
-              <div style={{ padding: 18 }}>
+              <div style={{ padding: 20 }}>
                 <button
+                  type="button"
                   onClick={() => setView('register')}
-                  style={{ ...primaryBtn, width: '100%', marginBottom: 10 }}
+                  className="btn-modern-primary"
+                  style={{ width: '100%', marginBottom: 10, fontSize: 14.5 }}
                 >
                   إنشاء صفحة حجز لمشروعك مجاناً
                 </button>
 
-                <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
                   <button
+                    type="button"
                     onClick={() => {
                       setIsUnlocked(false);
                       setView('dashboard');
                     }}
-                    style={{ ...secondaryBtn, flex: 1 }}
+                    className="btn-modern-secondary"
+                    style={{ flex: 1 }}
                   >
                     لوحة التحكم
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => setView('client')}
-                    style={{ ...secondaryBtn, flex: 1, background: '#f8fafc' }}
+                    className="btn-modern-secondary"
+                    style={{ flex: 1, color: '#4f46e5', borderColor: '#e0e7ff', background: '#f8faff' }}
                   >
                     تتبع حجوزاتي
                   </button>
                 </div>
                 {allProviders.length > 0 && (
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 14, padding: 14, marginBottom: 18 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 800, color: '#0f172a', marginBottom: 8 }}>
+                  <div style={{ background: '#f8faff', border: '1px solid #e0e7ff', borderRadius: 16, padding: 14, marginBottom: 20 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: '#312e81', marginBottom: 8 }}>
                       البحث عن مشروع أو خدمة
                     </div>
-                    <form onSubmit={handleAiDirectorySearch} style={{ display: 'flex', gap: 6 }}>
+                    <form onSubmit={handleAiDirectorySearch} style={{ display: 'flex', gap: 8 }}>
                       <input
                         type="text"
                         placeholder="اكتب اسم المحل أو الخدمة المطلوبة..."
@@ -333,19 +319,21 @@ export default function App() {
                             setMatchedProviders([]);
                           }
                         }}
-                        style={{ flex: 2, padding: '10px 12px', borderRadius: 10, border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: 13, fontFamily: 'inherit' }}
+                        className="input-modern"
+                        style={{ flex: 2, padding: '10px 12px', background: '#ffffff' }}
                       />
                       <button
                         type="submit"
                         disabled={aiSearching}
-                        style={{ ...primaryBtn, padding: '0 16px', borderRadius: 10, fontSize: 13, whiteSpace: 'nowrap' }}
+                        className="btn-modern-primary"
+                        style={{ padding: '0 18px', borderRadius: 12, fontSize: 13, whiteSpace: 'nowrap' }}
                       >
                         {aiSearching ? 'جاري...' : 'بحث'}
                       </button>
                     </form>
 
                     {aiSearchResult && (
-                      <div style={{ marginTop: 10, background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 10, padding: 10, fontSize: 12.5, color: '#1e293b', lineHeight: 1.6 }}>
+                      <div style={{ marginTop: 10, background: '#ffffff', border: '1px solid #e0e7ff', borderRadius: 12, padding: 12, fontSize: 12.5, color: '#1e293b', lineHeight: 1.6 }}>
                         {aiSearchResult}
                         {matchedProviders.length > 0 && (
                           <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -353,10 +341,11 @@ export default function App() {
                               <a
                                 key={mp.id}
                                 href={'/?p=' + mp.slug}
-                                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#0f172a', padding: '8px 12px', borderRadius: 8, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
+                                className="btn-modern-secondary"
+                                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', textDecoration: 'none', color: '#0f172a' }}
                               >
-                                <span>{mp.business_name}</span>
-                                <span style={{ color: '#2563eb', fontSize: 12 }}>انتقال للحجز ←</span>
+                                <span style={{ fontWeight: 800 }}>{mp.business_name}</span>
+                                <span style={{ color: '#4f46e5', fontSize: 12, fontWeight: 800 }}>دخول للحجز ←</span>
                               </a>
                             ))}
                           </div>
@@ -367,10 +356,10 @@ export default function App() {
                 )}
 
                 {displayedProviders.length > 0 && (
-                  <div style={{ marginBottom: 20 }}>
+                  <div style={{ marginBottom: 22 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                      <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#0f172a' }}>
-                        المشاريع والصالونات المتاحة ({displayedProviders.length})
+                      <h3 style={{ margin: 0, fontSize: 15.5, fontWeight: 800, color: '#0f172a' }}>
+                        المشاريع والصالونات المعتمدة ({displayedProviders.length})
                       </h3>
                       {aiSearchQuery.trim() && matchedProviders.length > 0 && (
                         <button
@@ -380,7 +369,8 @@ export default function App() {
                             setAiSearchResult('');
                             setMatchedProviders([]);
                           }}
-                          style={{ ...secondaryBtn, padding: '4px 10px', fontSize: 11, borderRadius: 8 }}
+                          className="btn-modern-secondary"
+                          style={{ padding: '5px 10px', fontSize: 11, borderRadius: 8 }}
                         >
                           عرض الكل
                         </button>
@@ -394,22 +384,22 @@ export default function App() {
                       const firstLetter = String(p.business_name || 'ع').trim().charAt(0);
 
                       return (
-                        <div key={p.id} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 15, marginBottom: 12 }}>
+                        <div key={p.id} className="card-modern card-modern-hover" style={{ padding: 16, marginBottom: 14 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                               {p.logo_url ? (
                                 <img
                                   src={p.logo_url}
                                   alt={p.business_name}
-                                  style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', border: '1px solid #cbd5e1', background: '#ffffff' }}
+                                  style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: '2px solid #e0e7ff', background: '#ffffff' }}
                                 />
                               ) : (
-                                <div style={{ width: 50, height: 50, borderRadius: 14, background: '#0f172a', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 19, flexShrink: 0 }}>
+                                <div style={{ width: 52, height: 52, borderRadius: 16, background: 'linear-gradient(135deg, #4f46e5, #6366f1)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20, flexShrink: 0 }}>
                                   {firstLetter}
                                 </div>
                               )}
                               <div>
-                                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#0f172a' }}>{p.business_name}</h4>
+                                <h4 style={{ margin: 0, fontSize: 15.5, fontWeight: 800, color: '#0f172a' }}>{p.business_name}</h4>
                                 {mapsUrl ? (
                                   <a
                                     href={mapsUrl}
@@ -418,16 +408,16 @@ export default function App() {
                                     style={{
                                       display: 'inline-block',
                                       marginTop: 4,
-                                      fontSize: 11,
+                                      fontSize: 11.5,
                                       fontWeight: 700,
-                                      color: '#2563eb',
+                                      color: '#4f46e5',
                                       textDecoration: 'none'
                                     }}
                                   >
                                     الموقع على الخريطة ↗
                                   </a>
                                 ) : (
-                                  <span style={{ display: 'inline-block', marginTop: 3, fontSize: 11, color: '#64748b' }}>
+                                  <span style={{ display: 'inline-block', marginTop: 3, fontSize: 11.5, color: '#64748b' }}>
                                     المغرب
                                   </span>
                                 )}
@@ -436,36 +426,37 @@ export default function App() {
 
                             <a
                               href={'/?p=' + p.slug}
-                              style={{ ...primaryBtn, textDecoration: 'none', padding: '9px 14px', borderRadius: 10, fontSize: 12.5, whiteSpace: 'nowrap', flexShrink: 0 }}
+                              className="btn-modern-accent"
+                              style={{ textDecoration: 'none', padding: '10px 15px', fontSize: 12.5, whiteSpace: 'nowrap', flexShrink: 0 }}
                             >
                               احجز الآن
                             </a>
                           </div>
 
                           {p.bio && (
-                            <p style={{ margin: '10px 0 0', fontSize: 12.5, color: '#475569', background: '#f8fafc', padding: '8px 11px', borderRadius: 10, border: '1px solid #e2e8f0', lineHeight: 1.6 }}>
+                            <p style={{ margin: '12px 0 0', fontSize: 12.5, color: '#475569', background: '#f8fafc', padding: '9px 12px', borderRadius: 11, border: '1px solid #f1f5f9', lineHeight: 1.6 }}>
                               {p.bio}
                             </p>
                           )}
 
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, paddingTop: 8, borderTop: '1px solid #f1f5f9', fontSize: 12 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 10, borderTop: '1px solid #f1f5f9', fontSize: 12 }}>
                             <div style={{ fontWeight: 700, color: '#0f172a' }}>
-                              التقييم: {ratingObj.avg}{' '}
+                              التقييم: <span style={{ color: '#4f46e5' }}>{ratingObj.avg}</span>{' '}
                               <span style={{ color: '#64748b', fontWeight: 600 }}>
                                 ({ratingObj.count > 0 ? ratingObj.count + ' تقييم' : 'جديد'})
                               </span>
                             </div>
-                            <a href={'/?p=' + p.slug} style={{ color: '#2563eb', fontWeight: 700, textDecoration: 'none' }}>
-                              عرض الخدمات ↗
+                            <a href={'/?p=' + p.slug} style={{ color: '#4f46e5', fontWeight: 700, textDecoration: 'none' }}>
+                              عرض جميع الخدمات ↗
                             </a>
                           </div>
 
                           {pServices.length > 0 && (
                             <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
                               {pServices.slice(0, 2).map((s) => (
-                                <div key={s.id} style={{ background: '#f8fafc', padding: '7px 10px', borderRadius: 8, border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                                <div key={s.id} style={{ background: '#f8faff', padding: '8px 11px', borderRadius: 10, border: '1px solid #eef2ff', display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                                   <span style={{ fontWeight: 700, color: '#0f172a' }}>{s.title}</span>
-                                  <span style={{ color: '#475569', fontWeight: 700 }}>{s.total_price} درهم (عربون: {s.deposit_amount})</span>
+                                  <span style={{ color: '#059669', fontWeight: 700 }}>{s.total_price} درهم (عربون: {s.deposit_amount})</span>
                                 </div>
                               ))}
                             </div>
@@ -475,19 +466,19 @@ export default function App() {
                     })}
                   </div>
                 )}
-                <div style={{ background: '#f8fafc', padding: 16, borderRadius: 14, border: '1px solid #e2e8f0', textAlign: 'right' }}>
-                  <h4 style={{ margin: '0 0 10px', color: '#0f172a', fontSize: 14, fontWeight: 800 }}>
+                <div style={{ background: '#f8faff', padding: 16, borderRadius: 16, border: '1px solid #e0e7ff', textAlign: 'right' }}>
+                  <h4 style={{ margin: '0 0 10px', color: '#312e81', fontSize: 14.5, fontWeight: 800 }}>
                     آلية العمل على منصة عربون
                   </h4>
                   <div style={{ fontSize: 12.5, color: '#475569', display: 'flex', flexDirection: 'column', gap: 8, lineHeight: 1.6 }}>
-                    <div style={{ background: '#ffffff', padding: '9px 12px', borderRadius: 10, border: '1px solid #e2e8f0' }}>
-                      <strong style={{ color: '#0f172a' }}>1. تسجيل المشروع:</strong> إضافة شعار المحل، رابط الموقع، وقائمة الخدمات.
+                    <div style={{ background: '#ffffff', padding: '10px 12px', borderRadius: 11, border: '1px solid #eef2ff' }}>
+                      <strong style={{ color: '#4f46e5' }}>1. تسجيل المشروع:</strong> إضافة شعار المحل، رابط الموقع، وقائمة الخدمات.
                     </div>
-                    <div style={{ background: '#ffffff', padding: '9px 12px', borderRadius: 10, border: '1px solid #e2e8f0' }}>
-                      <strong style={{ color: '#0f172a' }}>2. مشاركة الرابط:</strong> نشر رابط الحجز الخاص في منصات التواصل الاجتماعي.
+                    <div style={{ background: '#ffffff', padding: '10px 12px', borderRadius: 11, border: '1px solid #eef2ff' }}>
+                      <strong style={{ color: '#4f46e5' }}>2. مشاركة الرابط:</strong> نشر رابط الحجز الخاص في منصات التواصل الاجتماعي.
                     </div>
-                    <div style={{ background: '#ffffff', padding: '9px 12px', borderRadius: 10, border: '1px solid #e2e8f0' }}>
-                      <strong style={{ color: '#0f172a' }}>3. تأكيد المواعيد:</strong> استقبال حجوزات الزبائن والتحقق من وصولات العربون.
+                    <div style={{ background: '#ffffff', padding: '10px 12px', borderRadius: 11, border: '1px solid #eef2ff' }}>
+                      <strong style={{ color: '#4f46e5' }}>3. تأكيد المواعيد:</strong> استقبال حجوزات الزبائن والتحقق الفوري من وصولات العربون.
                     </div>
                   </div>
                 </div>
@@ -509,12 +500,14 @@ export default function App() {
                   onSuccess={() => loadProviderDetails(provider)}
                 />
               ) : (
-                <div style={{ textAlign: 'center', background: '#ffffff', padding: 28, borderRadius: 18, maxWidth: 420, margin: '40px auto', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)', border: '1px solid #e2e8f0' }}>
+                <div className="card-modern" style={{ textAlign: 'center', padding: 28, maxWidth: 420, margin: '40px auto' }}>
                   <h3 style={{ margin: '0 0 8px', fontWeight: 800, color: '#0f172a', fontSize: 18 }}>هذه الصفحة غير متوفرة</h3>
-                  <p style={{ color: '#64748b', fontSize: 13, marginBottom: 16 }}>قد يكون الرابط غير صحيح أو أن الحساب بانتظار التفعيل.</p>
+                  <p style={{ color: '#64748b', fontSize: 13, marginBottom: 18 }}>قد يكون الرابط غير صحيح أو أن الحساب بانتظار التفعيل.</p>
                   <button
+                    type="button"
                     onClick={() => { window.location.href = '/'; }}
-                    style={{ ...primaryBtn, padding: '11px 20px' }}
+                    className="btn-modern-primary"
+                    style={{ padding: '11px 22px' }}
                   >
                     الانتقال للصفحة الرئيسية
                   </button>
@@ -523,6 +516,7 @@ export default function App() {
 
               <div style={{ textAlign: 'center', marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <button
+                  type="button"
                   onClick={() => {
                     setIsUnlocked(false);
                     setView('dashboard');
@@ -532,8 +526,9 @@ export default function App() {
                   دخول صاحب المشروع (لوحة التحكم)
                 </button>
                 <button
+                  type="button"
                   onClick={() => setView('register')}
-                  style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                  style={{ background: 'none', border: 'none', color: '#4f46e5', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
                 >
                   إنشاء صفحة حجز لمشروعك مجاناً
                 </button>
@@ -541,24 +536,28 @@ export default function App() {
             </>
           ) : (
             <>
-              <div style={{ maxWidth: 480, margin: '0 auto 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ maxWidth: 490, margin: '0 auto 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <button
+                  type="button"
                   onClick={() => {
                     setIsUnlocked(false);
                     setView('booking');
                   }}
-                  style={{ ...secondaryBtn, padding: '8px 14px', fontSize: 12.5 }}
+                  className="btn-modern-secondary"
+                  style={{ padding: '8px 14px', fontSize: 12.5 }}
                 >
                   {slug ? 'العودة لصفحة الحجز' : 'العودة للرئيسية'}
                 </button>
                 {isUnlocked && (
                   <button
+                    type="button"
                     onClick={() => {
                       setIsUnlocked(false);
                       setLoginIdentifier('');
                       setPinInput('');
                     }}
-                    style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c', fontWeight: 700, fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit' }}
+                    className="btn-modern-secondary"
+                    style={{ padding: '8px 14px', fontSize: 12.5, borderColor: '#fecaca', background: '#fef2f2', color: '#b91c1c' }}
                   >
                     تسجيل الخروج
                   </button>
@@ -566,21 +565,22 @@ export default function App() {
               </div>
 
               {!isUnlocked ? (
-                <div style={{ maxWidth: 400, margin: '20px auto', background: '#ffffff', borderRadius: 20, overflow: 'hidden', textAlign: 'center', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)', border: '1px solid #e2e8f0' }}>
-                  <div style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0', padding: '24px 20px 18px' }}>
-                    <span style={{ display: 'inline-block', background: '#f1f5f9', color: '#475569', padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, marginBottom: 8 }}>
+                <div className="card-modern" style={{ maxWidth: 410, margin: '20px auto', overflow: 'hidden', textAlign: 'center' }}>
+                  <div style={{ background: 'linear-gradient(135deg, #312e81 0%, #4f46e5 100%)', color: '#ffffff', padding: '26px 20px 22px' }}>
+                    <span style={{ display: 'inline-block', background: 'rgba(255,255,255,0.16)', color: '#e0e7ff', padding: '3px 12px', borderRadius: 999, fontSize: 11, fontWeight: 700, marginBottom: 8 }}>
                       بوابة أصحاب المشاريع
                     </span>
-                    <h3 style={{ margin: '0 0 4px', fontWeight: 800, fontSize: 19, color: '#0f172a' }}>تسجيل الدخول</h3>
-                    <p style={{ fontSize: 12.5, color: '#64748b', margin: 0 }}>أدخل البريد الإلكتروني أو الهاتف والرمز السري</p>
+                    <h3 style={{ margin: '0 0 4px', fontWeight: 800, fontSize: 20 }}>تسجيل الدخول</h3>
+                    <p style={{ fontSize: 12.5, color: '#e0e7ff', margin: 0 }}>أدخل البريد الإلكتروني أو الهاتف والرمز السري</p>
                   </div>
-                  <form onSubmit={handleProviderLogin} style={{ padding: 20 }}>
+                  <form onSubmit={handleProviderLogin} style={{ padding: 22 }}>
                     <input
                       type="text"
                       placeholder="البريد الإلكتروني أو رقم الهاتف"
                       value={loginIdentifier}
                       onChange={(e) => setLoginIdentifier(e.target.value)}
-                      style={{ width: '100%', padding: 12, fontSize: 13.5, textAlign: 'center', borderRadius: 10, border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', marginBottom: 12, boxSizing: 'border-box', fontFamily: 'inherit' }}
+                      className="input-modern"
+                      style={{ textAlign: 'center', marginBottom: 12 }}
                       required
                     />
                     <input
@@ -588,13 +588,15 @@ export default function App() {
                       placeholder="الرمز السري (PIN)"
                       value={pinInput}
                       onChange={(e) => setPinInput(e.target.value)}
-                      style={{ width: '100%', padding: 12, fontSize: 17, textAlign: 'center', letterSpacing: 6, borderRadius: 10, border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', marginBottom: 16, boxSizing: 'border-box', fontFamily: 'inherit' }}
+                      className="input-modern"
+                      style={{ fontSize: 18, textAlign: 'center', letterSpacing: 6, marginBottom: 16 }}
                       required
                     />
                     <button
                       type="submit"
                       disabled={loginLoading}
-                      style={{ ...primaryBtn, width: '100%', padding: 13 }}
+                      className="btn-modern-primary"
+                      style={{ width: '100%', padding: 13 }}
                     >
                       {loginLoading ? 'جاري التحقق...' : 'دخول إلى لوحة التحكم'}
                     </button>
