@@ -621,11 +621,11 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
 
   const inputStyle = {
     width: '100%',
-    padding: '10px 12px',
+    padding: '11px 13px',
     margin: '6px 0 12px',
-    borderRadius: 10,
-    border: '1px solid #cbd5e1',
-    background: '#ffffff',
+    borderRadius: 12,
+    border: '1.5px solid #e2e8f0',
+    background: '#f8fafc',
     color: '#0f172a',
     boxSizing: 'border-box',
     fontFamily: 'inherit',
@@ -633,36 +633,40 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
   };
 
   const sectionCard = {
-    background: '#f8fafc',
-    border: '1px solid #e2e8f0',
-    borderRadius: 14,
+    background: '#f8faff',
+    border: '1px solid #e0e7ff',
+    borderRadius: 16,
     padding: 16,
     marginBottom: 14
   };
 
   const primaryBtn = {
-    background: '#0f172a',
+    background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
     color: '#ffffff',
     border: 'none',
-    borderRadius: 10,
-    padding: '10px 14px',
-    fontWeight: 700,
+    borderRadius: 12,
+    padding: '10px 15px',
+    fontWeight: 800,
     fontSize: 13,
     cursor: 'pointer',
-    fontFamily: 'inherit'
+    fontFamily: 'inherit',
+    boxShadow: '0 4px 12px rgba(79, 70, 229, 0.28)',
+    transition: 'transform 0.16s ease, box-shadow 0.16s ease'
   };
 
   const secondaryBtn = {
     background: '#ffffff',
-    color: '#0f172a',
-    border: '1px solid #cbd5e1',
-    borderRadius: 10,
+    color: '#1e293b',
+    border: '1.5px solid #e2e8f0',
+    borderRadius: 12,
     padding: '8px 12px',
     fontWeight: 700,
     fontSize: 12,
     cursor: 'pointer',
-    fontFamily: 'inherit'
+    fontFamily: 'inherit',
+    transition: 'transform 0.16s ease, border-color 0.16s ease'
   };
+
   if (selectedClientPhone) {
     const targetNorm = formatMoroccanPhone(selectedClientPhone);
     const clientBookings = bookings
@@ -705,148 +709,34 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
       ? { label: 'زبون منتظم', badgeBg: '#dbeafe', badgeColor: '#1e40af' }
       : { label: 'زبون جديد', badgeBg: '#f1f5f9', badgeColor: '#475569' };
 
-    return (
-      <div style={{ ...pageFont, maxWidth: 480, margin: '12px auto', background: '#ffffff', borderRadius: 18, overflow: 'hidden', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)', border: '1px solid #e2e8f0' }}>
-        <div style={{ background: '#0f172a', color: '#ffffff', padding: '18px 20px 22px' }}>
-          <button
-            type="button"
-            onClick={() => setSelectedClientPhone(null)}
-            style={{ background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 16 }}
-          >
-            العودة إلى لوحة التحكم
-          </button>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, border: '1px solid rgba(255,255,255,0.3)' }}>
-              {String(displayName).charAt(0)}
-            </div>
-            <div>
-              <span style={{ background: tier.badgeBg, color: tier.badgeColor, padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 800 }}>
-                {tier.label}
-              </span>
-              <h3 style={{ margin: '6px 0 2px', fontSize: 19, fontWeight: 800 }}>{displayName}</h3>
-              <div style={{ fontSize: 13, color: '#cbd5e1', direction: 'ltr', textAlign: 'right', fontFamily: 'monospace' }}>
-                {displayPhone}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ padding: 18 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 12 }}>
-              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700 }}>الحجوزات المؤكدة</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>
-                {confirmedList.length} <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>من {clientBookings.length}</span>
-              </div>
-            </div>
-
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 12 }}>
-              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700 }}>إجمالي التعاملات</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#15803d', marginTop: 4 }}>
-                {totalSpent} <span style={{ fontSize: 12, fontWeight: 700 }}>درهم</span>
-              </div>
-            </div>
-
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 12 }}>
-              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700 }}>الخدمة الأكثر طلباً</div>
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>{favoriteService}</div>
-            </div>
-
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 12 }}>
-              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700 }}>نسبة الالتزام والتوقيت</div>
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>
-                {commitmentRate}% — {favoriteTime}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', marginBottom: 10, borderBottom: '1px solid #e2e8f0', paddingBottom: 8 }}>
-            سجل المواعيد ({clientBookings.length})
-          </div>
-
-          {clientBookings.map((item) => {
-            const srv = services.find((s) => String(s.id) === String(item.service_id));
-            const ticketCode = '3RB-' + String(item.id || '').slice(0, 8).toUpperCase();
-            return (
-              <div key={item.id} style={{ borderRight: '3px solid ' + (item.status === 'confirmed' ? '#15803d' : item.status === 'rejected' ? '#b91c1c' : '#b45309'), background: '#f8fafc', borderRadius: 10, padding: 12, marginBottom: 10, borderTop: '1px solid #e2e8f0', borderLeft: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: '#0f172a', background: '#ffffff', padding: '2px 8px', borderRadius: 6, border: '1px solid #cbd5e1' }}>
-                    {ticketCode}
-                  </span>
-                  <span style={{
-                    padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-                    background: item.status === 'confirmed' ? '#dcfce7' : item.status === 'rejected' ? '#fee2e2' : '#fef3c7',
-                    color: item.status === 'confirmed' ? '#166534' : item.status === 'rejected' ? '#991b1b' : '#92400e'
-                  }}>
-                    {item.status === 'confirmed' ? 'مؤكد' : item.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة'}
-                  </span>
-                </div>
-
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a' }}>
-                  {srv ? srv.title : 'خدمة محجوزة'}
-                </div>
-                <div style={{ fontSize: 12, color: '#475569', marginTop: 4 }}>
-                  التاريخ: {item.booking_date} | الساعة: {item.booking_time}
-                  {srv ? ` | القيمة: ${srv.total_price} درهم` : ''}
-                </div>
-
-                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                  {item.receipt_url && (
-                    <a
-                      href={item.receipt_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{ ...secondaryBtn, textDecoration: 'none', padding: '5px 10px', fontSize: 11 }}
-                    >
-                      عرض الوصل
-                    </a>
-                  )}
-                  {item.status !== 'confirmed' && (
-                    <button
-                      type="button"
-                      disabled={updatingId === item.id}
-                      onClick={() => updateStatus(item, 'confirmed')}
-                      style={{ ...primaryBtn, padding: '5px 12px', fontSize: 11 }}
-                    >
-                      تأكيد الموعد
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-  return (
-    <div style={{ ...pageFont, maxWidth: 480, margin: '12px auto', background: '#ffffff', borderRadius: 18, overflow: 'hidden', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)', border: '1px solid #e2e8f0' }}>
-      {/* ترويسة احترافية نظيفة */}
-      <div style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0', padding: '20px 20px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: 0.5 }}>
+      return (
+    <div className="card-modern" style={{ ...pageFont, maxWidth: 470, margin: '0 auto', overflow: 'hidden', borderTopLeftRadius: 0, borderTopRightRadius: 0, borderTop: 'none' }}>
+      {/* ترويسة لوحة التحكم بتدرج النيلي الملكي */}
+      <div style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg, #312e81 0%, #4f46e5 65%, #6366f1 100%)', color: '#ffffff', padding: '22px 20px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ position: 'absolute', top: -35, left: -35, width: 130, height: 130, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <span style={{ display: 'inline-block', background: 'rgba(255,255,255,0.16)', padding: '2px 10px', borderRadius: 999, fontSize: 10.5, fontWeight: 700, color: '#e0e7ff', marginBottom: 4 }}>
             لوحة إدارة الأعمال
           </span>
-          <h3 style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 800, color: '#0f172a' }}>
+          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#ffffff' }}>
             {provider.business_name}
           </h3>
         </div>
         {logoUrl ? (
-          <img src={logoUrl} alt="Logo" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '1px solid #cbd5e1' }} />
+          <img src={logoUrl} alt="Logo" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: '2.5px solid rgba(255,255,255,0.85)', position: 'relative', zIndex: 1 }} />
         ) : (
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: '#f1f5f9', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.3)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, fontWeight: 900, position: 'relative', zIndex: 1 }}>
             {String(provider.business_name || 'ع').charAt(0)}
           </div>
         )}
       </div>
 
       <div style={{ padding: 18 }}>
-        <SubscriptionBanner provider={provider} />
+        <SubscriptionBanner provider={provider} onUpgradeClick={() => setTab('premium')} />
 
         {/* تنبيهات المواعيد القادمة */}
         {upcomingReminders.length > 0 && (
-          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: 14, marginBottom: 14 }}>
+          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 14, padding: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: '#92400e', marginBottom: 8 }}>
               مواعيد قريبة (خلال ساعتين)
             </div>
@@ -860,7 +750,8 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                   type="button"
                   disabled={updatingId === rem.id}
                   onClick={() => handleSendReminder(rem)}
-                  style={{ ...primaryBtn, padding: '7px 12px', fontSize: 12 }}
+                  className="btn-modern-primary"
+                  style={{ padding: '7px 12px', fontSize: 12 }}
                 >
                   {updatingId === rem.id ? 'جاري الإرسال...' : 'إرسال تذكير'}
                 </button>
@@ -872,17 +763,17 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
         {/* بطاقة رابط الحجز */}
         <div style={sectionCard}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontSize: 12, color: '#0f172a', fontWeight: 800 }}>رابط صفحة الحجز</span>
+            <span style={{ fontSize: 12.5, color: '#312e81', fontWeight: 800 }}>رابط صفحة الحجز</span>
             <button
               type="button"
               onClick={() => setShowAdBox(!showAdBox)}
-              style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}
+              style={{ background: 'none', border: 'none', color: '#4f46e5', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}
             >
               {showAdBox ? 'إخفاء أداة الإعلان' : 'إنشاء نص ترويجي'}
             </button>
           </div>
 
-          <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 10, padding: '8px 12px', fontSize: 12, color: '#334155', direction: 'ltr', textAlign: 'left', overflowX: 'auto', whiteSpace: 'nowrap', marginBottom: 10, fontFamily: 'monospace' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #c7d2fe', borderRadius: 10, padding: '8px 12px', fontSize: 12, color: '#334155', direction: 'ltr', textAlign: 'left', overflowX: 'auto', whiteSpace: 'nowrap', marginBottom: 10, fontFamily: 'monospace' }}>
             {bookingLink}
           </div>
 
@@ -890,32 +781,35 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             <button
               type="button"
               onClick={handleCopyLink}
-              style={{ ...primaryBtn, flex: 1, background: copied ? '#15803d' : '#0f172a' }}
+              className={copied ? 'btn-modern-accent' : 'btn-modern-primary'}
+              style={{ flex: 1, padding: '10px 12px', fontSize: 12.5 }}
             >
               {copied ? 'تم نسخ الرابط' : 'نسخ الرابط'}
             </button>
             <button
               type="button"
               onClick={handleShareWhatsApp}
-              style={{ ...secondaryBtn, flex: 1 }}
+              className="btn-modern-secondary"
+              style={{ flex: 1, padding: '10px 12px', fontSize: 12.5 }}
             >
               مشاركة الرابط
             </button>
           </div>
 
           {showAdBox && (
-            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #e2e8f0' }}>
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #e0e7ff' }}>
               <button
                 type="button"
                 disabled={generatingAd}
                 onClick={handleGenerateAdAI}
-                style={{ ...secondaryBtn, width: '100%', background: '#f1f5f9' }}
+                className="btn-modern-secondary"
+                style={{ width: '100%' }}
               >
                 {generatingAd ? 'جاري صياغة الإعلان...' : 'توليد نص إعلاني بالذكاء الاصطناعي'}
               </button>
 
               {generatedAd && (
-                <div style={{ marginTop: 10, background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 10, padding: 12 }}>
+                <div style={{ marginTop: 10, background: '#ffffff', border: '1px solid #c7d2fe', borderRadius: 12, padding: 12 }}>
                   <div style={{ fontSize: 13, color: '#1e293b', whiteSpace: 'pre-line', lineHeight: 1.6, marginBottom: 10 }}>
                     {generatedAd}
                   </div>
@@ -923,7 +817,8 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                     <button
                       type="button"
                       onClick={handleCopyAd}
-                      style={{ ...primaryBtn, flex: 1, padding: '7px 10px', fontSize: 12, background: copiedAd ? '#15803d' : '#0f172a' }}
+                      className={copiedAd ? 'btn-modern-accent' : 'btn-modern-primary'}
+                      style={{ flex: 1, padding: '8px 10px', fontSize: 12 }}
                     >
                       {copiedAd ? 'تم النسخ' : 'نسخ النص'}
                     </button>
@@ -931,7 +826,8 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                       href={'https://wa.me' + encodeURIComponent(generatedAd)}
                       target="_blank"
                       rel="noreferrer"
-                      style={{ ...secondaryBtn, flex: 1, textAlign: 'center', textDecoration: 'none', padding: '7px 10px', fontSize: 12 }}
+                      className="btn-modern-secondary"
+                      style={{ flex: 1, textAlign: 'center', textDecoration: 'none', padding: '8px 10px', fontSize: 12 }}
                     >
                       نشر عبر واتساب
                     </a>
@@ -943,7 +839,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
         </div>
 
         {/* شريط التبويبات الموحد */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 18, background: '#f1f5f9', padding: 4, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 18, background: '#f1f5f9', padding: 5, borderRadius: 14, border: '1px solid #e2e8f0' }}>
           {[
             { id: 'bookings', label: `الحجوزات (${bookings.length})` },
             { id: 'services', label: `الخدمات (${services.length})` },
@@ -959,16 +855,17 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
                 onClick={() => setTab(item.id)}
                 style={{
                   flex: 1,
-                  padding: '8px 4px',
-                  borderRadius: 9,
+                  padding: '9px 4px',
+                  borderRadius: 10,
                   border: 'none',
-                  fontWeight: 700,
-                  fontSize: 12,
-                  background: isActive ? '#ffffff' : 'transparent',
-                  color: isActive ? '#0f172a' : '#64748b',
-                  boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  fontWeight: 800,
+                  fontSize: 11.5,
+                  background: isActive ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'transparent',
+                  color: isActive ? '#ffffff' : '#64748b',
+                  boxShadow: isActive ? '0 4px 10px rgba(79,70,229,0.28)' : 'none',
                   cursor: 'pointer',
-                  fontFamily: 'inherit'
+                  fontFamily: 'inherit',
+                  transition: 'all 0.2s ease'
                 }}
               >
                 {item.label}
@@ -976,6 +873,7 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             );
           })}
         </div>
+
         {tab === 'premium' && <PremiumTab provider={provider} bookings={bookings} services={services} />}
 
         {tab === 'stats' && (
