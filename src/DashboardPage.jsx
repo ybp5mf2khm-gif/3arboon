@@ -1147,13 +1147,14 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
             {bookings.map((b) => (
               <div key={b.id} style={{ border: '1px solid #e2e8f0', borderRadius: 14, padding: 14, marginBottom: 12, background: '#f8fafc' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-               <button
-  type="button"
-  onClick={() => setSelectedClientPhone(scannedBooking.client_phone)}
-  style={{ background: 'none', border: 'none', padding: 0, fontSize: 15, fontWeight: 800, color: '#1e40af', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}
->
-  {scannedBooking.client_name}
-</button>
+                    <button
+                    type="button"
+                    onClick={() => setSelectedClientPhone(b.client_phone)}
+                    style={{ background: 'none', border: 'none', padding: 0, fontSize: 15, fontWeight: 800, color: '#1e40af', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}
+                  >
+                    {b.client_name}
+                  </button>
+
 
                   <span style={{
                     padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700,
