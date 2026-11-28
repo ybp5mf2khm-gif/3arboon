@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import StatsTab from './StatsTab';
 import HolidaysSection from './HolidaysSection';
+import jsQR from 'jsqr';
 import PremiumTab from './PremiumTab';
 import SubscriptionBanner from './SubscriptionBanner';
 
