@@ -229,8 +229,21 @@ export default function App() {
 
   return (
     <div style={appFont}>
-                           {(slug || view !== 'booking') && (
-        <div style={{ maxWidth: 470, margin: '4px auto 0', padding: '6px 14px 2px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                               {(slug || view !== 'booking') && (
+        <div style={{
+          maxWidth: 470,
+          margin: '10px auto 0',
+          padding: '10px 18px',
+          background: '#ffffff',
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          border: '1px solid rgba(226, 232, 240, 0.9)',
+          borderBottom: '1px solid #f1f5f9',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxSizing: 'border-box'
+        }}>
           <ArboonLogo
             variant="default"
             onClick={() => {
@@ -242,7 +255,7 @@ export default function App() {
               }
             }}
           />
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: '#4f46e5', background: '#ffffff', padding: '5px 12px', borderRadius: 999, border: '1px solid #e0e7ff', boxShadow: '0 2px 8px rgba(79,70,229,0.06)' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: '#4f46e5', background: '#f8faff', padding: '5px 12px', borderRadius: 999, border: '1px solid #e0e7ff' }}>
             <span className="live-dot-wrap">
               <span className="live-dot-ring" />
               <span className="live-dot-core" />
@@ -251,6 +264,7 @@ export default function App() {
           </div>
         </div>
       )}
+
 
 
       {view === 'register' && (
@@ -522,8 +536,9 @@ export default function App() {
         );
       })()}
 
-      {view !== 'register' && view !== 'client' && !(!slug && view === 'booking') && (
-        <div style={{ padding: 12 }}>
+            {view !== 'register' && view !== 'client' && !(!slug && view === 'booking') && (
+        <div style={{ padding: '0 12px 12px' }}>
+
           {view === 'booking' ? (
             <>
               {provider ? (
