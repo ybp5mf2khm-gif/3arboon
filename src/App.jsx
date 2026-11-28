@@ -229,8 +229,8 @@ export default function App() {
 
   return (
     <div style={appFont}>
-                       {(slug || view !== 'booking') && (
-        <div style={{ maxWidth: 490, margin: '8px auto 4px', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                           {(slug || view !== 'booking') && (
+        <div style={{ maxWidth: 470, margin: '4px auto 0', padding: '6px 14px 2px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <ArboonLogo
             variant="default"
             onClick={() => {
@@ -242,11 +242,16 @@ export default function App() {
               }
             }}
           />
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#4f46e5', background: '#eef2ff', padding: '5px 12px', borderRadius: 999, border: '1px solid #c7d2fe' }}>
-            منصة الحجز الموثوق
-          </span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: '#4f46e5', background: '#ffffff', padding: '5px 12px', borderRadius: 999, border: '1px solid #e0e7ff', boxShadow: '0 2px 8px rgba(79,70,229,0.06)' }}>
+            <span className="live-dot-wrap">
+              <span className="live-dot-ring" />
+              <span className="live-dot-core" />
+            </span>
+            <span>حجز فوري ومؤكد</span>
+          </div>
         </div>
       )}
+
 
       {view === 'register' && (
         <div style={{ padding: 12 }}>
