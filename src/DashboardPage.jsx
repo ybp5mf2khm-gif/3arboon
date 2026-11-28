@@ -157,6 +157,34 @@ export default function DashboardPage({ provider, bookings, services, onRefresh 
       stopCamera();
     }
   };
+  const handleQrImageUpload = (e) => {
+    const file = e.target.files ? e.target.files : null;
+    if (!file) return;
+    setScanError('');
+    setScannedBooking(null);
+
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code && code.data) {
+        findBookingByText(code.data);
+      } else {
+        setScanError('لم يتم العثور على رمز QR واضح في هذه الصورة.');
+      }
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => {
+      setScanError('تعذر قراءة ملف الصورة.');
+    };
+    img.src = URL.createObjectURL(file);
+    e.target.value = '';
+  };
 
 
   useEffect(() => {
